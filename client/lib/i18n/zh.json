@@ -1,0 +1,74 @@
+{
+  "common": {
+    "language": "語言",
+    "chinese": "中文",
+    "english": "English",
+    "search": "搜尋",
+    "filter": "篩選",
+    "reset": "重置",
+    "apply": "套用",
+    "close": "關閉",
+    "back": "返回",
+    "loading": "載入中...",
+    "error": "錯誤",
+    "noResults": "沒有結果",
+    "total": "總分"
+  },
+  "map": {
+    "title": "台大美食地圖",
+    "subtitle": "探索台大附近的美食店家",
+    "center": "以我的位置為中心",
+    "zoomIn": "放大",
+    "zoomOut": "縮小"
+  },
+  "filters": {
+    "title": "篩選條件",
+    "distance": "距離",
+    "maxDistance": "最大距離",
+    "rating": "評分",
+    "minRating": "最低評分",
+    "price": "價位",
+    "priceLevel": {
+      "1": "$ - 便宜",
+      "2": "$$ - 中等",
+      "3": "$$$ - 較貴",
+      "4": "$$$$ - 昂貴"
+    },
+    "categories": "類別",
+    "features": "特色",
+    "openNow": "僅顯示營業中",
+    "internationalFriendly": "外籍生友善"
+  },
+  "place": {
+    "details": "店家詳情",
+    "rating": "評分",
+    "price": "價位",
+    "distance": "距離",
+    "address": "地址",
+    "phone": "電話",
+    "hours": "營業時間",
+    "categories": "類別",
+    "features": "特色",
+    "reviews": "評論",
+    "photos": "照片",
+    "recommendationScore": "推薦分數",
+    "scoreBreakdown": "分數分解"
+  },
+  "roulette": {
+    "title": "食物轉盤",
+    "subtitle": "讓轉盤幫你決定今天吃什麼！",
+    "spin": "轉動",
+    "result": "結果",
+    "selectedPlace": "選中的店家",
+    "tryAgain": "再轉一次"
+  },
+  "scoreBreakdown": {
+    "title": "推薦分數分解",
+    "rating": "評分",
+    "distance": "距離",
+    "popularity": "人氣",
+    "openStatus": "營業狀態",
+    "context": "使用情境"
+  }
+}
+

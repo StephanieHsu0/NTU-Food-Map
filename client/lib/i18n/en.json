@@ -1,0 +1,74 @@
+{
+  "common": {
+    "language": "Language",
+    "chinese": "中文",
+    "english": "English",
+    "search": "Search",
+    "filter": "Filter",
+    "reset": "Reset",
+    "apply": "Apply",
+    "close": "Close",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "noResults": "No results",
+    "total": "Total"
+  },
+  "map": {
+    "title": "NTU Food Map",
+    "subtitle": "Explore food places near NTU",
+    "center": "Center on my location",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "filters": {
+    "title": "Filters",
+    "distance": "Distance",
+    "maxDistance": "Max distance",
+    "rating": "Rating",
+    "minRating": "Min rating",
+    "price": "Price",
+    "priceLevel": {
+      "1": "$ - Inexpensive",
+      "2": "$$ - Moderate",
+      "3": "$$$ - Expensive",
+      "4": "$$$$ - Very Expensive"
+    },
+    "categories": "Categories",
+    "features": "Features",
+    "openNow": "Open now only",
+    "internationalFriendly": "International friendly"
+  },
+  "place": {
+    "details": "Place Details",
+    "rating": "Rating",
+    "price": "Price",
+    "distance": "Distance",
+    "address": "Address",
+    "phone": "Phone",
+    "hours": "Hours",
+    "categories": "Categories",
+    "features": "Features",
+    "reviews": "Reviews",
+    "photos": "Photos",
+    "recommendationScore": "Recommendation Score",
+    "scoreBreakdown": "Score Breakdown"
+  },
+  "roulette": {
+    "title": "Food Roulette",
+    "subtitle": "Let the wheel decide what to eat today!",
+    "spin": "Spin",
+    "result": "Result",
+    "selectedPlace": "Selected Place",
+    "tryAgain": "Spin Again"
+  },
+  "scoreBreakdown": {
+    "title": "Score Breakdown",
+    "rating": "Rating",
+    "distance": "Distance",
+    "popularity": "Popularity",
+    "openStatus": "Open Status",
+    "context": "Context"
+  }
+}
+
