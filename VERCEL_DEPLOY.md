@@ -18,7 +18,7 @@ Vercel 無法找到 Next.js 是因為專案結構中 Next.js 位於 `client/` �
 
 ### 方法 2：使用 vercel.json（已建立）
 
-已建立 `vercel.json` 檔案，但 Vercel 建議使用專案設定中的 Root Directory。
+已建立 `vercel.json` 檔案。**重要：** 如果已在 Vercel 設定中將 Root Directory 設為 `client`，則 `vercel.json` 中的命令不需要 `cd client`，因為 Vercel 已經在 `client` 目錄下執行命令。
 
 ## 環境變數設定
 

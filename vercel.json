@@ -1,8 +1,8 @@
 {
-  "buildCommand": "npm install && cd client && npm install && npm run build",
-  "outputDirectory": "client/.next",
-  "devCommand": "cd client && npm run dev",
-  "installCommand": "npm install && cd client && npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
   "framework": null
 }
 
