@@ -7,6 +7,10 @@ const nextConfig = {
   images: {
     domains: ['maps.googleapis.com', 'lh3.googleusercontent.com'],
   },
+  // Disable static optimization for dynamic routes to avoid window is not defined errors
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
 };
 
 export default withNextIntl(nextConfig);

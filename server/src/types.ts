@@ -71,3 +71,9 @@ export interface PlaceDocument {
   updated_at?: Date;
 }
 
+export interface RouletteRequest {
+  lat: number;
+  lng: number;
+  filters?: FilterParams;
+}
+

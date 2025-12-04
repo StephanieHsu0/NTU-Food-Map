@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import Map from '@/components/Map';
 import Sidebar from '@/components/Sidebar';
 import Filters from '@/components/Filters';
 import { fetchPlaces } from '@/utils/api';
 import { Place, FilterParams } from '@/utils/types';
+
+// Dynamically import Map component to avoid SSR issues with Leaflet
+const Map = dynamic(() => import('@/components/Map'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading map...</div>
+});
 
 export default function HomePage() {
   const t = useTranslations();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ScoreBreakdown } from '@/utils/types';
+import type { ScoreBreakdown } from '@/utils/types';
 
 interface ScoreBreakdownProps {
   breakdown: ScoreBreakdown;
