@@ -2,9 +2,10 @@ import { MongoClient, Db } from 'mongodb';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from root .env file (for local development)
-// Next.js Serverless Functions run from the client directory, so we need to go up one level
-if (process.env.NODE_ENV !== 'production') {
+// Load environment variables (for local development only)
+// In Vercel production, environment variables are automatically available via process.env
+// Only load .env files in local development
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   // Try loading from root directory (one level up from client)
   const rootEnvPath = path.resolve(__dirname, '../../.env');
   dotenv.config({ path: rootEnvPath });
