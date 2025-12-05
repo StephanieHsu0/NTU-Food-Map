@@ -11,7 +11,8 @@
     "build:server": "cd server && npm run build",
     "build:client": "cd client && npm run build",
     "start:server": "cd server && npm start",
-    "start:client": "cd client && npm start"
+    "start:client": "cd client && npm start",
+    "start:all": "npm run start:server & npm run start:client"
   },
   "keywords": [
     "ntu",
