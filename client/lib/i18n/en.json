@@ -29,11 +29,18 @@
     "minRating": "Min rating",
     "price": "Price",
     "priceLevel": {
-      "1": "$ - Inexpensive",
-      "2": "$$ - Moderate",
-      "3": "$$$ - Expensive",
-      "4": "$$$$ - Very Expensive"
+      "1": "$",
+      "2": "$$",
+      "3": "$$$",
+      "4": "$$$$"
     },
+    "priceLevelName": {
+      "1": "Inexpensive",
+      "2": "Moderate",
+      "3": "Expensive",
+      "4": "Very Expensive"
+    },
+    "selectedPrice": "Selected price",
     "categories": "Categories",
     "features": "Features",
     "openNow": "Open now only",

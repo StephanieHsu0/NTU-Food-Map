@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, InfoWindow, Circle } from '@react-google-maps/api';
 import { Place } from '@/utils/types';
 
 const mapContainerStyle = {
@@ -19,12 +19,37 @@ interface MapProps {
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place) => void;
   center: [number, number];
+  onMapClick?: (lat: number, lng: number) => void;
+  selectedLocation?: { lat: number; lng: number; name?: string } | null;
+  onMapLoad?: () => void;
+  radius?: number;
+  onLocationSelect?: (lat: number, lng: number, name?: string) => void;
 }
 
-export default function Map({ places, selectedPlace, onPlaceSelect, center }: MapProps) {
+export default function Map({ 
+  places, 
+  selectedPlace, 
+  onPlaceSelect, 
+  center,
+  onMapClick,
+  selectedLocation,
+  onMapLoad,
+  radius,
+  onLocationSelect
+}: MapProps) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const [infoWindowPlace, setInfoWindowPlace] = useState<Place | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const locationMarkerRef = useRef<google.maps.Marker | null>(null);
+  const locationInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const [showLocationInfo, setShowLocationInfo] = useState(false);
+
+  // Debug: Log places when they change
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Map received places:', places?.length || 0, places);
+    }
+  }, [places]);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
 
@@ -39,10 +64,26 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
     }
   }, [googleMapsApiKey]);
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     setIsLoaded(true);
-  }, []);
+
+    // Add click listener to map
+    if (onMapClick) {
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          onMapClick(lat, lng);
+        }
+      });
+    }
+
+    // Notify parent that map is loaded
+    if (onMapLoad) {
+      onMapLoad();
+    }
+  }, [onMapClick, onMapLoad]);
 
   const onMapUnmount = useCallback(() => {
     mapRef.current = null;
@@ -55,6 +96,98 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
       mapRef.current.setZoom(16);
     }
   }, [center, isLoaded]);
+
+  // Update location marker when selectedLocation changes
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current || !selectedLocation) {
+      // Clean up if selectedLocation is removed
+      if (locationMarkerRef.current) {
+        locationMarkerRef.current.setMap(null);
+        locationMarkerRef.current = null;
+      }
+      if (locationInfoWindowRef.current) {
+        locationInfoWindowRef.current.close();
+        locationInfoWindowRef.current = null;
+      }
+      setShowLocationInfo(false);
+      return;
+    }
+
+    // Remove existing marker if any
+    if (locationMarkerRef.current) {
+      locationMarkerRef.current.setMap(null);
+    }
+    if (locationInfoWindowRef.current) {
+      locationInfoWindowRef.current.close();
+    }
+
+    // Create new marker for selected location
+    const marker = new window.google.maps.Marker({
+      position: { lat: selectedLocation.lat, lng: selectedLocation.lng },
+      map: mapRef.current,
+      icon: {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#FF0000',
+        fillOpacity: 1,
+        strokeColor: '#FFFFFF',
+        strokeWeight: 3,
+      },
+      title: selectedLocation.name || '選擇的位置',
+      zIndex: 1000,
+      clickable: true,
+    });
+
+    // Add click listener to show info window
+    marker.addListener('click', () => {
+      if (locationInfoWindowRef.current) {
+        locationInfoWindowRef.current.close();
+      }
+      
+      const displayName = selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`;
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px; min-width: 150px;">
+            <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
+              ${displayName}
+            </div>
+            ${selectedLocation.name ? `
+            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+              ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
+            </div>
+            ` : ''}
+          </div>
+        `,
+      });
+      
+      infoWindow.open(mapRef.current, marker);
+      locationInfoWindowRef.current = infoWindow;
+      setShowLocationInfo(true);
+    });
+
+    // Auto-open info window when location is selected
+    const displayName = selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`;
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="padding: 8px; min-width: 150px;">
+          <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
+            ${displayName}
+          </div>
+          ${selectedLocation.name ? `
+          <div style="font-size: 11px; color: #666; margin-top: 4px;">
+            ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
+          </div>
+          ` : ''}
+        </div>
+      `,
+    });
+    
+    infoWindow.open(mapRef.current, marker);
+    locationInfoWindowRef.current = infoWindow;
+    setShowLocationInfo(true);
+
+    locationMarkerRef.current = marker;
+  }, [selectedLocation, isLoaded]);
 
   const getMarkerIcon = (place: Place, isSelected: boolean): google.maps.Symbol | undefined => {
     if (!isLoaded || typeof window === 'undefined' || !window.google) {
@@ -73,6 +206,7 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
   };
 
   const handleMarkerClick = (place: Place) => {
+    // Show info window and select place
     setInfoWindowPlace(place);
     onPlaceSelect(place);
   };
@@ -98,6 +232,7 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
     <div className="w-full h-full">
       <LoadScript 
         googleMapsApiKey={googleMapsApiKey}
+        libraries={['places']}
         loadingElement={<div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading Google Maps...</div>}
         onError={(error) => {
           console.error('Google Maps LoadScript error:', error);
@@ -107,7 +242,7 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
           mapContainerStyle={mapContainerStyle}
           center={{ lat: center[0], lng: center[1] }}
           zoom={16}
-          onLoad={onMapLoad}
+          onLoad={handleMapLoad}
           onUnmount={onMapUnmount}
           onError={(error) => {
             console.error('Google Maps error:', error);
@@ -120,16 +255,35 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
             fullscreenControl: true,
           }}
         >
-          {places.map((place) => {
+          {/* Search radius circle */}
+          {selectedLocation && radius && (
+            <Circle
+              center={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+              radius={radius}
+              options={{
+                fillColor: '#4285F4',
+                fillOpacity: 0.1,
+                strokeColor: '#4285F4',
+                strokeOpacity: 0.5,
+                strokeWeight: 2,
+              }}
+            />
+          )}
+
+          {places && Array.isArray(places) && places.length > 0 && places.map((place) => {
+            if (!place || !place.lat || !place.lng) {
+              console.warn('Invalid place data:', place);
+              return null;
+            }
             const isSelected = selectedPlace?.id === place.id;
             return (
               <Marker
-                key={place.id}
+                key={place.id || `${place.lat}-${place.lng}`}
                 position={{ lat: place.lat, lng: place.lng }}
                 icon={isLoaded ? getMarkerIcon(place, isSelected) : undefined}
                 onClick={() => handleMarkerClick(place)}
                 label={{
-                  text: place.price_level.toString(),
+                  text: place.price_level?.toString() || '?',
                   color: 'white',
                   fontSize: '12px',
                   fontWeight: 'bold',
@@ -156,15 +310,28 @@ export default function Map({ places, selectedPlace, onPlaceSelect, center }: Ma
                       {(infoWindowPlace.distance_m / 1000).toFixed(2)} km
                     </div>
                   )}
-                  <button
-                    onClick={() => {
-                      onPlaceSelect(infoWindowPlace);
-                      handleInfoWindowClose();
-                    }}
-                    className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                  >
-                    查看詳情
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        onPlaceSelect(infoWindowPlace);
+                        handleInfoWindowClose();
+                      }}
+                      className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                    >
+                      查看詳情
+                    </button>
+                    {onLocationSelect && (
+                      <button
+                        onClick={() => {
+                          onLocationSelect(infoWindowPlace.lat, infoWindowPlace.lng, infoWindowPlace.name_zh || infoWindowPlace.name_en);
+                          handleInfoWindowClose();
+                        }}
+                        className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                      >
+                        設為中心
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </InfoWindow>

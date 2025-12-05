@@ -7,9 +7,10 @@ import { FilterParams } from '@/utils/types';
 interface FiltersProps {
   filters: FilterParams;
   onChange: (filters: FilterParams) => void;
+  onReset?: () => void;
 }
 
-export default function Filters({ filters, onChange }: FiltersProps) {
+export default function Filters({ filters, onChange, onReset }: FiltersProps) {
   const t = useTranslations();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
 
@@ -51,6 +52,10 @@ export default function Filters({ filters, onChange }: FiltersProps) {
     };
     setLocalFilters(defaultFilters);
     onChange(defaultFilters);
+    // Notify parent to reset selected location
+    if (onReset) {
+      onReset();
+    }
   };
 
   const commonCategories = ['餐廳', '咖啡廳', '小吃', '夜市', '速食', '日式', '中式', '西式'];
@@ -99,10 +104,10 @@ export default function Filters({ filters, onChange }: FiltersProps) {
           onChange={(e) => handleChange('price_max', parseInt(e.target.value))}
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         >
-          <option value={4}>{t('filters.priceLevel.4')}</option>
-          <option value={3}>{t('filters.priceLevel.3')}</option>
-          <option value={2}>{t('filters.priceLevel.2')}</option>
-          <option value={1}>{t('filters.priceLevel.1')}</option>
+          <option value={4}>{t('filters.priceLevel.4')} - {t('filters.priceLevelName.4')}</option>
+          <option value={3}>{t('filters.priceLevel.3')} - {t('filters.priceLevelName.3')}</option>
+          <option value={2}>{t('filters.priceLevel.2')} - {t('filters.priceLevelName.2')}</option>
+          <option value={1}>{t('filters.priceLevel.1')} - {t('filters.priceLevelName.1')}</option>
         </select>
       </div>
 
