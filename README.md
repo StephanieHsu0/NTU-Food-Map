@@ -2,7 +2,7 @@
 
 A bilingual (Chinese/English) food recommendation platform for National Taiwan University students and international students.
 
-🌐 **Live Demo:** https://ntu-foodmap.vercel.app
+🌐 **Live Demo:** https://ntu-food-map.vercel.app
 
 ## Features
 
@@ -45,7 +45,7 @@ A bilingual (Chinese/English) food recommendation platform for National Taiwan U
 ## Deployment
 
 The application is deployed on Vercel and can be accessed at:
-- **Production URL:** https://ntu-foodmap.vercel.app
+- **Production URL:** https://ntu-food-map.vercel.app
 
 For deployment instructions, see [VERCEL_DEPLOY_FULL.md](./VERCEL_DEPLOY_FULL.md).
 
