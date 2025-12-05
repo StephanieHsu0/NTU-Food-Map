@@ -10,9 +10,10 @@ interface SidebarProps {
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place) => void;
   loading: boolean;
+  error?: string | null;
 }
 
-export default function Sidebar({ places, selectedPlace, onPlaceSelect, loading }: SidebarProps) {
+export default function Sidebar({ places, selectedPlace, onPlaceSelect, loading, error }: SidebarProps) {
   const t = useTranslations();
   const locale = useLocale();
 
@@ -20,6 +21,18 @@ export default function Sidebar({ places, selectedPlace, onPlaceSelect, loading 
     return (
       <div className="p-4 text-center text-gray-500">
         {t('common.loading')}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-red-600 font-medium mb-2">錯誤</div>
+        <div className="text-sm text-gray-600">{error}</div>
+        <div className="text-xs text-gray-500 mt-2">
+          請檢查瀏覽器控制台以獲取更多資訊
+        </div>
       </div>
     );
   }

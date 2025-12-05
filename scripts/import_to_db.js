@@ -7,7 +7,8 @@
  * Default: imports from db/seed.json
  */
 
-require('dotenv').config();
+// Load .env from root directory
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const path = require('path');

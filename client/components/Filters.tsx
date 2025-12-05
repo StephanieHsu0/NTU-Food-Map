@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { FilterParams } from '@/utils/types';
 
@@ -13,9 +13,15 @@ export default function Filters({ filters, onChange }: FiltersProps) {
   const t = useTranslations();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
 
+  // Sync localFilters with filters prop when it changes
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
   const handleChange = (key: keyof FilterParams, value: any) => {
     const newFilters = { ...localFilters, [key]: value };
     setLocalFilters(newFilters);
+    console.log('Filter changed:', key, value, newFilters);
     onChange(newFilters);
   };
 

@@ -23,25 +23,31 @@ A bilingual (Chinese/English) food recommendation platform for National Taiwan U
 - next-intl (i18n)
 
 ### Backend
-- Node.js + Express (TypeScript)
+- Next.js Route Handlers (Serverless Functions)
 - MongoDB Atlas (with geospatial queries)
 
 ## Project Structure
 
 ```
 /
-├─ client/          # Next.js frontend
-├─ server/          # Express backend
-├─ db/              # Database schema and seeds
-└─ scripts/         # Data fetching and import scripts
+├─ client/          # Next.js frontend (with Serverless Functions)
+│   ├─ app/        # App Router (pages + API routes)
+│   ├─ components/ # React components
+│   ├─ lib/        # Shared utilities (DB, scoring)
+│   └─ utils/      # Helper functions
+├─ server/         # Express backend (optional, for local dev)
+├─ db/             # Database schema and seeds
+└─ scripts/        # Data fetching and import scripts
 ```
+
+詳細結構說明請參考 [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 
 ## Deployment
 
 The application is deployed on Vercel and can be accessed at:
 - **Production URL:** https://ntu-foodmap.vercel.app
 
-For deployment instructions, see [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md).
+For deployment instructions, see [VERCEL_DEPLOY_FULL.md](./VERCEL_DEPLOY_FULL.md).
 
 ## Setup Instructions
 
@@ -168,7 +174,13 @@ GOOGLE_PLACES_API_KEY=your_api_key_here
 SERVER_PORT=3001
 ```
 
-**`client/.env.local`:**
+**`client/.env.local`（Serverless Functions 使用）:**
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/ntu_food_map?retryWrites=true&w=majority
+DB_NAME=ntu_food_map
+```
+
+**或（如果使用獨立後端）:**
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
@@ -192,21 +204,26 @@ node scripts/fetch_places.js
 node scripts/import_to_db.js
 ```
 
-### 5. Start Development Servers
+### 5. Start Development Server
 
-**Terminal 1 - Backend:**
-```bash
-cd server
-npm run dev
-```
-Server runs on http://localhost:3001
-
-**Terminal 2 - Frontend:**
+**使用 Serverless Functions（推薦）:**
 ```bash
 cd client
 npm run dev
 ```
-Frontend runs on http://localhost:3000
+前端和 API 都運行在 http://localhost:3000
+
+**或使用獨立後端（可選）:**
+```bash
+# Terminal 1 - Backend
+cd server
+npm run dev
+
+# Terminal 2 - Frontend
+cd client
+npm run dev
+```
+後端運行在 http://localhost:3001，前端運行在 http://localhost:3000
 
 ## API Endpoints
 
@@ -248,7 +265,12 @@ Body:
 - Components: `client/components/`
 - i18n: `client/lib/i18n/`
 
-### Backend
+### Backend (Serverless Functions)
+- API Routes: `client/app/api/`
+- Database: `client/lib/db.ts`
+- Scoring logic: `client/lib/scoring.ts`
+
+### Backend (獨立伺服器，可選)
 - Server: `server/src/index.ts`
 - Routes: `server/src/routes/`
 - Scoring logic: `server/src/scoring.ts`

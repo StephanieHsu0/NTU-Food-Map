@@ -20,6 +20,7 @@ export default function HomePage() {
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterParams>({
     lat: 25.0170, // NTU approximate center
     lng: 121.5395,
@@ -34,12 +35,19 @@ export default function HomePage() {
 
   const loadPlaces = async () => {
     setLoading(true);
+    setError(null);
     try {
+      console.log('Loading places with filters:', filters);
       const data = await fetchPlaces(filters);
+      console.log('Loaded places:', data.length);
       setPlaces(data);
       setFilteredPlaces(data);
     } catch (error) {
       console.error('Failed to load places:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load places';
+      setError(errorMessage);
+      setPlaces([]);
+      setFilteredPlaces([]);
     } finally {
       setLoading(false);
     }
@@ -65,6 +73,7 @@ export default function HomePage() {
           selectedPlace={selectedPlace}
           onPlaceSelect={handlePlaceSelect}
           loading={loading}
+          error={error}
         />
       </div>
       <div className="flex-1 relative">

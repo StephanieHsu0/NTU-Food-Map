@@ -1,6 +1,9 @@
 import { Place, FilterParams, RouletteRequest } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Use relative path for API calls (works for both local dev and Vercel deployment)
+// In development, if NEXT_PUBLIC_API_URL is set, use it (for separate backend server)
+// Otherwise, use relative path (for Vercel Serverless Functions)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export async function fetchPlaces(params: FilterParams): Promise<Place[]> {
   const queryParams = new URLSearchParams();
@@ -20,11 +23,19 @@ export async function fetchPlaces(params: FilterParams): Promise<Place[]> {
     queryParams.append('open_now', params.open_now.toString());
   }
 
-  const response = await fetch(`${API_URL}/api/places?${queryParams.toString()}`);
+  const url = `${API_URL}/api/places?${queryParams.toString()}`;
+  console.log('Fetching places from:', url);
+  
+  const response = await fetch(url);
+  
   if (!response.ok) {
-    throw new Error('Failed to fetch places');
+    const errorText = await response.text();
+    console.error('API error:', response.status, errorText);
+    throw new Error(`Failed to fetch places: ${response.status} ${errorText}`);
   }
-  return response.json();
+  
+  const data = await response.json();
+  return data;
 }
 
 export async function fetchPlace(id: string): Promise<Place> {

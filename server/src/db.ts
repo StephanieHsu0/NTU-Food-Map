@@ -1,7 +1,9 @@
 import { MongoClient, Db } from 'mongodb';
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// 讀取根目錄的 .env 檔案
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ntu_food_map';
 const DB_NAME = process.env.DB_NAME || 'ntu_food_map';

@@ -1,11 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import connectToDatabase, { closeDatabase } from './db';
 import placesRouter from './routes/places';
 import rouletteRouter from './routes/roulette';
 
-dotenv.config();
+// 讀取根目錄的 .env 檔案（僅在本地開發時使用）
+// 在部署環境（Railway/Render）中，環境變數會自動從平台設定讀取
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+}
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -39,7 +44,10 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// 在部署環境中，Railway/Render 會自動設定 PORT
+const serverPort = process.env.PORT || PORT;
+
+app.listen(serverPort, '0.0.0.0', () => {
+  console.log(`Server is running on port ${serverPort}`);
 });
 
