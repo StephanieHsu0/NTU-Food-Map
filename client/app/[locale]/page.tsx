@@ -8,7 +8,7 @@ import Filters from '@/components/Filters';
 import { fetchPlaces } from '@/utils/api';
 import { Place, FilterParams } from '@/utils/types';
 
-// Dynamically import Map component to avoid SSR issues with Leaflet
+// Dynamically import Map component to avoid SSR issues with Google Maps
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading map...</div>

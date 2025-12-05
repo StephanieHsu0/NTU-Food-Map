@@ -26,6 +26,4 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* Leaflet styles */
-@import 'leaflet/dist/leaflet.css';
 
