@@ -4,7 +4,7 @@
 
 **NTU Food Map（台大美食推薦平台）** 是一個為台大學生與外籍生設計的雙語美食推薦平台。使用者可以在地圖上瀏覽台大附近的美食店家，透過多種條件篩選，並使用「食物轉盤」功能幫助選擇餐廳。
 
-**部署網址：** https://ntu-foodmap.vercel.app
+**部署網址：** https://ntu-food-map.vercel.app
 
 ---
 
