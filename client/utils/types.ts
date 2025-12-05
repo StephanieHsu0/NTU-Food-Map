@@ -23,6 +23,32 @@ export interface Place {
   is_open?: boolean;
 }
 
+// MongoDB document structure (includes location for geospatial queries)
+export interface PlaceDocument {
+  id: string;
+  name_zh: string;
+  name_en: string;
+  address_zh: string;
+  address_en: string;
+  phone?: string;
+  price_level: number;
+  rating: number;
+  rating_count: number;
+  location: {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  categories: string[];
+  features: string[];
+  open_hours?: {
+    [key: string]: string[];
+  };
+  photos?: string[];
+  website?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
 export interface ScoreBreakdown {
   rating: number;
   distance: number;
