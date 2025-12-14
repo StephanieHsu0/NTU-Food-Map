@@ -6,9 +6,10 @@ import { useTranslations } from 'next-intl';
 import Sidebar from '@/components/Sidebar';
 import Filters from '@/components/Filters';
 import { fetchPlaces } from '@/utils/api';
+import { searchNearbyPlaces, getPlaceNameAtLocation } from '@/utils/googlePlaces';
 import { Place, FilterParams } from '@/utils/types';
 
-// Dynamically import Map component to avoid SSR issues with Leaflet
+// Dynamically import Map component to avoid SSR issues with Google Maps
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading map...</div>
@@ -19,8 +20,11 @@ export default function HomePage() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useGooglePlaces, setUseGooglePlaces] = useState(true); // Toggle between Google Places and database
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [filters, setFilters] = useState<FilterParams>({
     lat: 25.0170, // NTU approximate center
     lng: 121.5395,
@@ -30,18 +34,57 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    loadPlaces();
-  }, [filters]);
+    // Load places when filters change
+    // For Google Places: wait for map to load, then use selectedLocation or default location
+    // For database: load immediately
+    if (!useGooglePlaces) {
+      // Database mode: load immediately
+      loadPlaces();
+    } else if (mapLoaded) {
+      // Google Places mode: wait for map to load, then load places
+      // Use selectedLocation if available, otherwise use default location from filters
+      loadPlaces();
+    }
+  }, [filters, useGooglePlaces, selectedLocation, mapLoaded]);
 
   const loadPlaces = async () => {
     setLoading(true);
     setError(null);
     try {
       console.log('Loading places with filters:', filters);
-      const data = await fetchPlaces(filters);
-      console.log('Loaded places:', data.length);
-      setPlaces(data);
-      setFilteredPlaces(data);
+      
+      // Use Google Places API if enabled and location is selected (or use default location)
+      const searchLocation = selectedLocation || { lat: filters.lat || 25.0170, lng: filters.lng || 121.5395 };
+      if (useGooglePlaces && mapLoaded) {
+        try {
+          const data = await searchNearbyPlaces(
+            searchLocation.lat,
+            searchLocation.lng,
+            filters.radius || 2000,
+            {
+              rating_min: filters.rating_min,
+              price_max: filters.price_max,
+            }
+          );
+          console.log('Loaded places from Google Places:', data.length);
+          console.log('Places data:', data);
+          setPlaces(data);
+          setFilteredPlaces(data);
+        } catch (placesError) {
+          console.warn('Google Places API failed, falling back to database:', placesError);
+          // Fallback to database if Google Places fails
+          const data = await fetchPlaces(filters);
+          console.log('Loaded places from database (fallback):', data.length);
+          setPlaces(data);
+          setFilteredPlaces(data);
+        }
+      } else {
+        // Use database
+        const data = await fetchPlaces(filters);
+        console.log('Loaded places from database:', data.length);
+        setPlaces(data);
+        setFilteredPlaces(data);
+      }
     } catch (error) {
       console.error('Failed to load places:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load places';
@@ -61,12 +104,92 @@ export default function HomePage() {
     setSelectedPlace(place);
   };
 
+  const handleMapClick = async (lat: number, lng: number) => {
+    console.log('Map clicked at:', lat, lng);
+    
+    // Set location immediately with coordinates
+    setSelectedLocation({ lat, lng });
+    
+    // Get place name at this location asynchronously
+    if (mapLoaded) {
+      try {
+        const placeName = await getPlaceNameAtLocation(lat, lng);
+        console.log('Place name at location:', placeName);
+        // Update location with name if found
+        if (placeName) {
+          setSelectedLocation({ lat, lng, name: placeName });
+        }
+      } catch (error) {
+        console.error('Failed to get place name:', error);
+      }
+    }
+    
+    // Update filters with new location
+    setFilters({
+      ...filters,
+      lat,
+      lng,
+    });
+  };
+
+  const handleLocationSelect = async (lat: number, lng: number, name?: string) => {
+    console.log('Location selected from marker:', lat, lng, name);
+    setSelectedLocation({ lat, lng, name });
+    // Update filters with new location
+    setFilters({
+      ...filters,
+      lat,
+      lng,
+    });
+  };
+
+  const handleMapLoad = () => {
+    setMapLoaded(true);
+  };
+
+  const handleReset = () => {
+    // Reset selected location
+    setSelectedLocation(null);
+    // Reset selected place
+    setSelectedPlace(null);
+    // Reset filters to default values
+    const defaultFilters: FilterParams = {
+      lat: 25.0170,
+      lng: 121.5395,
+      radius: 2000,
+      rating_min: 0,
+      price_max: 4,
+    };
+    setFilters(defaultFilters);
+    // Clear places
+    setPlaces([]);
+    setFilteredPlaces([]);
+  };
+
   return (
     <div className="flex h-[calc(100vh-80px)]">
       <div className="w-1/3 border-r bg-white overflow-y-auto">
         <div className="p-4 border-b">
           <h2 className="text-xl font-semibold mb-4">{t('filters.title')}</h2>
-          <Filters filters={filters} onChange={handleFilterChange} />
+          {useGooglePlaces && !selectedLocation && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              💡 點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選
+            </p>
+          </div>
+          )}
+          {useGooglePlaces && selectedLocation && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-800">
+              ✓ 已選擇位置：{selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`}
+            </p>
+          </div>
+          )}
+          <Filters 
+            filters={filters} 
+            onChange={handleFilterChange}
+            onReset={handleReset}
+          />
         </div>
         <Sidebar
           places={filteredPlaces}
@@ -82,6 +205,11 @@ export default function HomePage() {
           selectedPlace={selectedPlace}
           onPlaceSelect={handlePlaceSelect}
           center={[filters.lat || 25.0170, filters.lng || 121.5395]}
+          onMapClick={handleMapClick}
+          selectedLocation={selectedLocation}
+          onMapLoad={handleMapLoad}
+          radius={filters.radius}
+          onLocationSelect={handleLocationSelect}
         />
       </div>
     </div>
