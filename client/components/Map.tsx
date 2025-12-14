@@ -244,9 +244,6 @@ export default function Map({
           zoom={16}
           onLoad={handleMapLoad}
           onUnmount={onMapUnmount}
-          onError={(error) => {
-            console.error('Google Maps error:', error);
-          }}
           options={{
             disableDefaultUI: false,
             zoomControl: true,
