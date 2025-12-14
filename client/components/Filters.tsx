@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { FilterParams } from '@/utils/types';
 
 interface FiltersProps {
@@ -12,6 +12,7 @@ interface FiltersProps {
 
 export default function Filters({ filters, onChange, onReset }: FiltersProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
 
   // Sync localFilters with filters prop when it changes
@@ -59,7 +60,6 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
   };
 
   const commonCategories = ['餐廳', '咖啡廳', '小吃', '夜市', '速食', '日式', '中式', '西式'];
-  const commonFeatures = ['international_friendly', 'vegetarian', 'halal', 'wifi', 'parking'];
 
   return (
     <div className="space-y-4">
@@ -69,9 +69,9 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </label>
         <input
           type="range"
-          min="500"
+          min="100"
           max="5000"
-          step="500"
+          step="100"
           value={localFilters.radius || 2000}
           onChange={(e) => handleChange('radius', parseInt(e.target.value))}
           className="w-full"
@@ -102,7 +102,7 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         <select
           value={localFilters.price_max || 4}
           onChange={(e) => handleChange('price_max', parseInt(e.target.value))}
-          className="w-full border border-gray-300 rounded-md px-3 py-2"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 bg-white"
         >
           <option value={4}>{t('filters.priceLevel.4')} - {t('filters.priceLevelName.4')}</option>
           <option value={3}>{t('filters.priceLevel.3')} - {t('filters.priceLevelName.3')}</option>
@@ -126,7 +126,7 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {cat}
+              {t(`filters.categoryNames.${cat}`) || cat}
             </button>
           ))}
         </div>
@@ -144,16 +144,7 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               onChange={(e) => handleChange('open_now', e.target.checked)}
               className="mr-2"
             />
-            <span className="text-sm">{t('filters.openNow')}</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={localFilters.features?.includes('international_friendly') || false}
-              onChange={() => handleFeatureToggle('international_friendly')}
-              className="mr-2"
-            />
-            <span className="text-sm">{t('filters.internationalFriendly')}</span>
+            <span className="text-sm text-gray-900">{t('filters.openNow')}</span>
           </label>
         </div>
       </div>

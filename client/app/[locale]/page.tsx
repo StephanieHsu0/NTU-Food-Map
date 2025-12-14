@@ -64,6 +64,8 @@ export default function HomePage() {
             {
               rating_min: filters.rating_min,
               price_max: filters.price_max,
+              open_now: filters.open_now,
+              categories: filters.categories,
             }
           );
           console.log('Loaded places from Google Places:', data.length);
@@ -102,6 +104,15 @@ export default function HomePage() {
 
   const handlePlaceSelect = (place: Place) => {
     setSelectedPlace(place);
+    // Clear selectedLocation when selecting a place to avoid showing multiple circles
+    // The circle should only show when user explicitly sets a search center via map click or "查看附近餐廳" button
+    setSelectedLocation(null);
+    // Update map center to the selected place
+    setFilters({
+      ...filters,
+      lat: place.lat,
+      lng: place.lng,
+    });
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
@@ -148,6 +159,7 @@ export default function HomePage() {
   };
 
   const handleReset = () => {
+    console.log('🔄 Reset button clicked');
     // Reset selected location
     setSelectedLocation(null);
     // Reset selected place
@@ -164,24 +176,25 @@ export default function HomePage() {
     // Clear places
     setPlaces([]);
     setFilteredPlaces([]);
+    console.log('✅ Reset completed, selectedLocation:', null, 'selectedPlace:', null);
   };
 
   return (
     <div className="flex h-[calc(100vh-80px)]">
       <div className="w-1/3 border-r bg-white overflow-y-auto">
         <div className="p-4 border-b">
-          <h2 className="text-xl font-semibold mb-4">{t('filters.title')}</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">{t('filters.title')}</h2>
           {useGooglePlaces && !selectedLocation && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-800">
-              💡 點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選
+              💡 {t('map.clickToSelectCenter')}
             </p>
           </div>
           )}
           {useGooglePlaces && selectedLocation && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-800">
-              ✓ 已選擇位置：{selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`}
+              ✓ {t('map.selectedLocation')}：{selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`}
             </p>
           </div>
           )}

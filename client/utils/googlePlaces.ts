@@ -251,6 +251,40 @@ export async function getPlaceNameAtLocation(
 }
 
 // Search nearby places using Google Places API
+// Map Chinese category names to Google Places API types
+const categoryToGoogleType: { [key: string]: string[] } = {
+  '餐廳': ['restaurant'],
+  '咖啡廳': ['cafe', 'coffee_shop'],
+  '小吃': ['meal_takeaway', 'food'],
+  '夜市': ['night_market', 'food'],
+  '速食': ['meal_takeaway', 'fast_food_restaurant'],
+  '日式': ['restaurant'], // Will filter by category name in place.categories
+  '中式': ['restaurant'], // Will filter by category name in place.categories
+  '西式': ['restaurant'], // Will filter by category name in place.categories
+};
+
+// Keywords for cuisine types (for checking in reviews)
+const cuisineKeywords: { [key: string]: string[] } = {
+  '日式': [
+    // Chinese keywords
+    '日式', '日本', '日料', '和食', '壽司', '拉麵', '丼飯', '天婦羅', '居酒屋', '燒肉', '燒烤', '日式料理',
+    // English keywords
+    'japanese', 'sushi', 'ramen', 'donburi', 'tempura', 'izakaya', 'yakitori', 'teriyaki', 'sashimi', 'udon', 'soba', 'tonkatsu'
+  ],
+  '中式': [
+    // Chinese keywords
+    '中式', '中國', '中餐', '川菜', '粵菜', '湘菜', '魯菜', '台菜', '台灣', '小籠包', '炒飯', '炒麵', '火鍋', '麻辣',
+    // English keywords
+    'chinese', 'szechuan', 'cantonese', 'dim sum', 'dumpling', 'wonton', 'hot pot', 'kung pao', 'mapo tofu', 'peking duck'
+  ],
+  '西式': [
+    // Chinese keywords
+    '西式', '西餐', '義式', '義大利', '法式', '法國', '美式', '美國', '牛排', '義大利麵', '披薩', '漢堡', '義式料理', '法式料理',
+    // English keywords
+    'western', 'italian', 'french', 'american', 'steak', 'pasta', 'pizza', 'burger', 'spaghetti', 'risotto', 'carbonara', 'bolognese', 'bruschetta', 'tiramisu', 'croissant', 'baguette', 'wine', 'bistro'
+  ],
+};
+
 export async function searchNearbyPlaces(
   lat: number,
   lng: number,
@@ -259,6 +293,8 @@ export async function searchNearbyPlaces(
     rating_min?: number;
     price_max?: number;
     type?: string;
+    open_now?: boolean;
+    categories?: string[];
   } = {}
 ): Promise<Place[]> {
   if (!GOOGLE_MAPS_API_KEY) {
@@ -287,12 +323,24 @@ export async function searchNearbyPlaces(
       'meal_delivery',
     ];
 
+    // If categories are specified, try to use the first matching Google type
+    let searchType = foodTypes[0]; // Default to restaurant
+    if (filters.categories && filters.categories.length > 0) {
+      // Get the first category and find its Google type
+      const firstCategory = filters.categories[0];
+      const googleTypes = categoryToGoogleType[firstCategory];
+      if (googleTypes && googleTypes.length > 0) {
+        searchType = googleTypes[0];
+      }
+    }
+
     const request: google.maps.places.PlaceSearchRequest = {
       location: new window.google.maps.LatLng(lat, lng),
       radius: radius,
-      type: foodTypes[0], // Use restaurant as primary type
+      type: searchType,
       // Note: Google Places API only accepts one type at a time
-      // We'll filter by types in getPlaceDetails
+      // We'll filter by category names in the filter logic below
+      openNow: filters.open_now || false, // Filter by open status if requested
     };
 
     return new Promise((resolve, reject) => {
@@ -343,10 +391,87 @@ export async function searchNearbyPlaces(
                     return false;
                   }
                 }
+                // Category filter: check if place matches selected categories
+                if (filters.categories && filters.categories.length > 0) {
+                  // Check if place's categories match any of the selected categories
+                  // Place categories are Google Places types (e.g., 'restaurant', 'cafe')
+                  // Selected categories are Chinese names (e.g., '餐廳', '咖啡廳')
+                  const placeCategories = place.categories || [];
+                  const selectedCategories = filters.categories;
+                  
+                  // Map selected Chinese categories to Google types
+                  const selectedGoogleTypes = new Set<string>();
+                  selectedCategories.forEach(cat => {
+                    const googleTypes = categoryToGoogleType[cat] || [];
+                    googleTypes.forEach(type => selectedGoogleTypes.add(type));
+                  });
+                  
+                  // For cuisine-specific categories (日式、中式、西式), check place name or categories
+                  const cuisineCategories = ['日式', '中式', '西式'];
+                  const hasCuisineFilter = selectedCategories.some(cat => cuisineCategories.includes(cat));
+                  
+                  if (hasCuisineFilter) {
+                    // For cuisine filters, check if place name, categories, or reviews contain cuisine keywords
+                    const name = (place.name_zh || place.name_en || '').toLowerCase();
+                    
+                    // Check reviews text if available
+                    const reviewsText = place.reviews && place.reviews.length > 0
+                      ? place.reviews.map(r => (r.text || '').toLowerCase()).join(' ')
+                      : '';
+                    const allText = `${name} ${reviewsText}`.toLowerCase();
+                    
+                    const matchesCuisine = selectedCategories.some(cat => {
+                      const keywords = cuisineKeywords[cat] || [];
+                      if (keywords.length === 0) return false;
+                      
+                      // Check name and categories first
+                      const nameMatch = keywords.some(keyword => 
+                        name.includes(keyword.toLowerCase())
+                      );
+                      const categoryMatch = placeCategories.some(c => 
+                        keywords.some(keyword => c.toLowerCase().includes(keyword.toLowerCase()))
+                      );
+                      
+                      // Check reviews if name and category don't match
+                      let reviewMatch = false;
+                      if (!nameMatch && !categoryMatch && reviewsText) {
+                        reviewMatch = keywords.some(keyword => 
+                          reviewsText.includes(keyword.toLowerCase())
+                        );
+                      }
+                      
+                      return nameMatch || categoryMatch || reviewMatch;
+                    });
+                    
+                    if (!matchesCuisine) {
+                      console.log(`Filtered out place ${place.name_zh} - doesn't match cuisine filter (checked name, categories, and reviews)`);
+                      return false;
+                    }
+                  } else {
+                    // For general categories, check if place types match
+                    const matchesCategory = placeCategories.some(placeCat => 
+                      selectedGoogleTypes.has(placeCat) || 
+                      Array.from(selectedGoogleTypes).some(selectedType => placeCat.includes(selectedType))
+                    );
+                    
+                    if (!matchesCategory) {
+                      console.log(`Filtered out place ${place.name_zh} - categories ${placeCategories.join(', ')} don't match ${selectedCategories.join(', ')}`);
+                      return false;
+                    }
+                  }
+                }
+                // Open now filter: only include places that are currently open
+                if (filters.open_now === true) {
+                  // Check if place has opening hours and is currently open
+                  if (place.is_open === false || (place.is_open === undefined && place.open_hours === undefined)) {
+                    console.log(`Filtered out place ${place.name_zh} - not open now`);
+                    return false;
+                  }
+                }
                 return true;
               });
               
-              console.log(`Places after filtering: ${filteredPlaces.length} (rating_min: ${filters.rating_min}, price_max: ${filters.price_max})`);
+              console.log(`Places after filtering: ${filteredPlaces.length} (rating_min: ${filters.rating_min}, price_max: ${filters.price_max}, open_now: ${filters.open_now})`);
 
               // Sort by distance
               filteredPlaces.sort((a, b) => {
@@ -370,11 +495,11 @@ export async function searchNearbyPlaces(
 }
 
 // Get detailed information for a place
-async function getPlaceDetails(
+export async function getPlaceDetails(
   placeId: string,
   userLat: number,
   userLng: number,
-  filters: { rating_min?: number; price_max?: number }
+  filters: { rating_min?: number; price_max?: number } = {}
 ): Promise<Place> {
   return new Promise((resolve, reject) => {
     const service = new window.google.maps.places.PlacesService(
@@ -396,6 +521,7 @@ async function getPlaceDetails(
         'photos',
         'website',
         'formatted_phone_number',
+        'reviews', // Add reviews field
       ],
     };
 
@@ -428,6 +554,19 @@ async function getPlaceDetails(
         
         // Get price level
         const placePriceLevel = convertPriceLevel(place.price_level);
+        
+        // Debug: log the raw data from Google Places API
+        console.log('Google Places API raw data:', {
+          name: place.name,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          price_level: place.price_level,
+          converted_price_level: placePriceLevel,
+          formatted_phone_number: place.formatted_phone_number,
+          website: place.website,
+          opening_hours: place.opening_hours,
+          photos_count: place.photos?.length || 0,
+        });
         
         // Note: We'll apply filters later in searchNearbyPlaces to avoid rejecting places
         // that might have missing data but could still be valid
@@ -472,6 +611,31 @@ async function getPlaceDetails(
           return photo.getUrl({ maxWidth: 400, maxHeight: 400 });
         }) || [];
 
+        // Process reviews (Google Places API returns up to 5 reviews)
+        const reviews = place.reviews?.slice(0, 5).map((review) => ({
+          author_name: review.author_name || '匿名',
+          author_url: review.author_url,
+          profile_photo_url: review.profile_photo_url,
+          rating: review.rating || 0,
+          relative_time_description: review.relative_time_description || '',
+          text: review.text || '',
+          time: review.time || 0,
+        })) || [];
+
+        // Determine if place is currently open
+        // Use Google Places API's open_now if available, otherwise check opening hours
+        let isOpen: boolean | undefined = undefined;
+        if (place.opening_hours) {
+          // Google Places API provides open_now property
+          if (place.opening_hours.open_now !== undefined) {
+            isOpen = place.opening_hours.open_now;
+          } else if (Object.keys(openHours).length > 0) {
+            // Fallback: check if there are opening hours for today
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            isOpen = openHours[today] !== undefined && openHours[today].length > 0;
+          }
+        }
+
         const placeData: Place = {
           id: place.place_id || '',
           name_zh: place.name || '',
@@ -490,7 +654,21 @@ async function getPlaceDetails(
           photos: photos.length > 0 ? photos : undefined,
           website: place.website,
           distance_m: Math.round(distance_m),
+          reviews: reviews.length > 0 ? reviews : undefined,
+          is_open: isOpen,
         };
+
+        console.log('Processed place data:', {
+          name: placeData.name_zh,
+          rating: placeData.rating,
+          rating_count: placeData.rating_count,
+          price_level: placeData.price_level,
+          distance_m: placeData.distance_m,
+          has_phone: !!placeData.phone,
+          has_website: !!placeData.website,
+          has_open_hours: !!placeData.open_hours,
+          photos_count: placeData.photos?.length || 0,
+        });
 
         resolve(placeData);
       } else {

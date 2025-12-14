@@ -205,5 +205,5 @@ SERVER_PORT=3001
 2. **在 Vercel 設定環境變數**
 3. **Vercel 自動部署**
 
-詳細說明請參考 [VERCEL_DEPLOY_FULL.md](./VERCEL_DEPLOY_FULL.md)
+詳細說明請參考 [DEPLOYMENT.md](./DEPLOYMENT.md)
 

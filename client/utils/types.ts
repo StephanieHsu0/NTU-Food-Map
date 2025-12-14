@@ -1,3 +1,13 @@
+export interface PlaceReview {
+  author_name: string;
+  author_url?: string;
+  profile_photo_url?: string;
+  rating: number;
+  relative_time_description: string;
+  text: string;
+  time: number; // Unix timestamp
+}
+
 export interface Place {
   id: string;
   name_zh: string;
@@ -21,6 +31,7 @@ export interface Place {
   score?: number;
   score_breakdown?: ScoreBreakdown;
   is_open?: boolean;
+  reviews?: PlaceReview[];
 }
 
 // MongoDB document structure (includes location for geospatial queries)

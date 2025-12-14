@@ -111,10 +111,16 @@ export async function GET(request: NextRequest) {
       return place;
     });
 
-    // Sort by score
-    places.sort((a, b) => (b.score || 0) - (a.score || 0));
+    // Filter by open_now if specified
+    let filteredPlaces = places;
+    if (filters.open_now === true) {
+      filteredPlaces = places.filter((place) => place.is_open === true);
+    }
 
-    return NextResponse.json(places);
+    // Sort by score
+    filteredPlaces.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    return NextResponse.json(filteredPlaces);
   } catch (error) {
     console.error('Error fetching places:', error);
     return NextResponse.json(

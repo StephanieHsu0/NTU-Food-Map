@@ -16,14 +16,21 @@
     "retry": "Retry",
     "notFound": "Page Not Found",
     "notFoundDescription": "The page you are looking for does not exist",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "googleMapsTimeout": "Google Maps API loading timeout. Please refresh the page.",
+    "googleMapsLoadError": "Failed to load Google Maps API"
   },
   "map": {
     "title": "NTU Food Map",
     "subtitle": "Explore food places near NTU",
     "center": "Center on my location",
     "zoomIn": "Zoom in",
-    "zoomOut": "Zoom out"
+    "zoomOut": "Zoom out",
+    "selectLocation": "Selected Location",
+    "viewDetails": "View Details",
+    "viewNearby": "View Nearby Restaurants",
+    "clickToSelectCenter": "Click on a location on the map to select the search center. The system will use Google Maps restaurant information for filtering.",
+    "selectedLocation": "Selected location"
   },
   "filters": {
     "title": "Filters",
@@ -48,7 +55,17 @@
     "categories": "Categories",
     "features": "Features",
     "openNow": "Open now only",
-    "internationalFriendly": "International friendly"
+    "internationalFriendly": "International friendly",
+    "categoryNames": {
+      "餐廳": "Restaurant",
+      "咖啡廳": "Cafe",
+      "小吃": "Snacks",
+      "夜市": "Night Market",
+      "速食": "Fast Food",
+      "日式": "Japanese",
+      "中式": "Chinese",
+      "西式": "Western"
+    }
   },
   "place": {
     "details": "Place Details",
@@ -63,7 +80,19 @@
     "reviews": "Reviews",
     "photos": "Photos",
     "recommendationScore": "Recommendation Score",
-    "scoreBreakdown": "Score Breakdown"
+    "scoreBreakdown": "Score Breakdown",
+    "website": "Website",
+    "notProvided": "Not provided",
+    "unknownPlace": "Unknown Place",
+    "backToMap": "Back to Map",
+    "reviewsSource": "Review data source: Google Places API",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
   },
   "roulette": {
     "title": "Food Roulette",

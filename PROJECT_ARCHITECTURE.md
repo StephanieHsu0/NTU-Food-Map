@@ -434,7 +434,7 @@ FINAL PROJECT/
 ## 📚 相關文件
 
 - [README.md](./README.md) - 專案說明與設定指南
-- [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md) - Vercel 部署指南
-- [SETUP_MONGODB.md](./SETUP_MONGODB.md) - MongoDB Atlas 設定指南
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Vercel 部署指南
+- [ENV_SETUP.md](./ENV_SETUP.md) - 環境變數設定指南
 - [plan.md](./plan.md) - 開發計畫與待辦事項
 

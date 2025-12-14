@@ -16,14 +16,21 @@
     "retry": "重試",
     "notFound": "找不到頁面",
     "notFoundDescription": "您要尋找的頁面不存在",
-    "backToHome": "返回首頁"
+    "backToHome": "返回首頁",
+    "googleMapsTimeout": "Google Maps API 載入超時。請重新整理頁面。",
+    "googleMapsLoadError": "無法載入 Google Maps API"
   },
   "map": {
     "title": "台大美食地圖",
     "subtitle": "探索台大附近的美食店家",
     "center": "以我的位置為中心",
     "zoomIn": "放大",
-    "zoomOut": "縮小"
+    "zoomOut": "縮小",
+    "selectLocation": "選擇的位置",
+    "viewDetails": "查看詳情",
+    "viewNearby": "查看附近餐廳",
+    "clickToSelectCenter": "點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選",
+    "selectedLocation": "已選擇位置"
   },
   "filters": {
     "title": "篩選條件",
@@ -48,7 +55,17 @@
     "categories": "類別",
     "features": "特色",
     "openNow": "僅顯示營業中",
-    "internationalFriendly": "外籍生友善"
+    "internationalFriendly": "外籍生友善",
+    "categoryNames": {
+      "餐廳": "餐廳",
+      "咖啡廳": "咖啡廳",
+      "小吃": "小吃",
+      "夜市": "夜市",
+      "速食": "速食",
+      "日式": "日式",
+      "中式": "中式",
+      "西式": "西式"
+    }
   },
   "place": {
     "details": "店家詳情",
@@ -63,7 +80,19 @@
     "reviews": "評論",
     "photos": "照片",
     "recommendationScore": "推薦分數",
-    "scoreBreakdown": "分數分解"
+    "scoreBreakdown": "分數分解",
+    "website": "網站",
+    "notProvided": "未提供",
+    "unknownPlace": "未知店家",
+    "backToMap": "返回地圖",
+    "reviewsSource": "評論資料來源：Google Places API",
+    "monday": "星期一",
+    "tuesday": "星期二",
+    "wednesday": "星期三",
+    "thursday": "星期四",
+    "friday": "星期五",
+    "saturday": "星期六",
+    "sunday": "星期日"
   },
   "roulette": {
     "title": "食物轉盤",

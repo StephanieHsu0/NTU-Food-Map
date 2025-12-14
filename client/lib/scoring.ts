@@ -45,11 +45,8 @@ export function calculateScore(
   const openScore = place.is_open === true ? 1 : place.is_open === false ? 0.3 : 0.5;
 
   // Context score (based on features and categories)
-  // Higher score for international_friendly, vegetarian options, etc.
+  // Higher score for vegetarian options, wifi, etc.
   let contextScore = 0.5; // Base score
-  if (place.features.includes('international_friendly')) {
-    contextScore += 0.2;
-  }
   if (place.features.includes('vegetarian')) {
     contextScore += 0.15;
   }
