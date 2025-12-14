@@ -12,7 +12,11 @@
     "loading": "載入中...",
     "error": "錯誤",
     "noResults": "沒有結果",
-    "total": "總分"
+    "total": "總分",
+    "retry": "重試",
+    "notFound": "找不到頁面",
+    "notFoundDescription": "您要尋找的頁面不存在",
+    "backToHome": "返回首頁"
   },
   "map": {
     "title": "台大美食地圖",

@@ -96,18 +96,37 @@
 
 **確認：**
 1. 環境變數已設定（三個環境都要）
-2. 變數名稱正確（`MONGODB_URI`, `DB_NAME`）
-3. 重新部署以載入新環境變數
+2. 變數名稱正確（`NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY`, `MONGODB_URI`, `DB_NAME`）
+3. **重要：** 重新部署以載入新環境變數（設置環境變數後必須重新部署）
+4. 訪問 `/api/debug` 驗證環境變數是否正確載入
+
+### Google Maps 無法載入
+
+**診斷步驟：**
+1. 訪問 `https://your-domain.vercel.app/api/debug` 檢查環境變數狀態
+2. 檢查瀏覽器控制台（F12）的錯誤信息
+3. 確認 Google Cloud Console 中：
+   - Maps JavaScript API 已啟用
+   - Places API 已啟用
+   - API Key 限制包含 Vercel 域名：
+     - `https://your-domain.vercel.app/*`
+     - `https://*.vercel.app/*`
+
+**常見錯誤：**
+- "RefererNotAllowedMapError" → API Key 限制設置不正確
+- "ApiNotActivatedMapError" → API 未啟用
+- "Google Maps API Key 未設定" → 環境變數未設置或未重新部署
 
 ## 📝 檢查清單
 
 部署前確認：
 
 - [ ] Root Directory 設為 `client`
-- [ ] 環境變數已設定（MONGODB_URI, DB_NAME）
+- [ ] 環境變數已設定（NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY, MONGODB_URI, DB_NAME）
 - [ ] 三個環境（Production, Preview, Development）都已設定
 - [ ] Framework 設為 "Next.js"
 - [ ] 最新程式碼已推送到 GitHub
+- [ ] 訪問 `/api/debug` 驗證環境變數是否正確載入
 
 ## 🔗 相關資源
 
