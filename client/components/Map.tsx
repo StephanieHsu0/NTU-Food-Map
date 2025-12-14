@@ -222,23 +222,42 @@ export default function Map({
     setInfoWindowPlace(null);
   };
 
-  if (!googleMapsApiKey || googleMapsApiKey === 'XXX' || googleMapsApiKey.length < 20) {
+  // Check API key validity
+  const isApiKeyValid = googleMapsApiKey && 
+                        googleMapsApiKey !== 'XXX' && 
+                        googleMapsApiKey !== 'your_google_maps_api_key_here' &&
+                        googleMapsApiKey.length >= 20 &&
+                        googleMapsApiKey.startsWith('AIza');
+
+  if (!isApiKeyValid) {
     return (
       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
         <div className="text-center p-4 max-w-md">
-          <p className="text-red-600 font-semibold text-lg mb-2">Google Maps API Key 未設定</p>
+          <p className="text-red-600 font-semibold text-lg mb-2">Google Maps API Key 未設定或無效</p>
           <p className="text-sm text-gray-600 mt-2 mb-4">
             請在 Vercel 環境變數中設定 NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY
           </p>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded text-left mb-4">
+            <p className="font-semibold mb-2">診斷資訊：</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>API Key 存在: {googleMapsApiKey ? '是' : '否'}</li>
+              <li>API Key 長度: {googleMapsApiKey?.length || 0} 字元</li>
+              <li>API Key 預覽: {googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : '無'}</li>
+              <li>格式正確: {googleMapsApiKey?.startsWith('AIza') ? '是' : '否'}</li>
+            </ul>
+          </div>
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p className="font-semibold mb-1">設定步驟：</p>
             <ol className="list-decimal list-inside space-y-1 text-left">
               <li>前往 Vercel Dashboard → Settings → Environment Variables</li>
               <li>添加變數名：NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY</li>
-              <li>填入您的 Google Maps API Key</li>
+              <li>填入您的 Google Maps API Key（應以 "AIza" 開頭）</li>
               <li>選擇所有環境（Production, Preview, Development）</li>
               <li>重新部署應用程式</li>
             </ol>
+            <p className="mt-2 text-blue-600">
+              💡 提示：訪問 <code>/api/debug</code> 查看環境變數狀態
+            </p>
           </div>
         </div>
       </div>
