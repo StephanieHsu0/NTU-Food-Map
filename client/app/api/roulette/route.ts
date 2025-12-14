@@ -3,6 +3,9 @@ import { connectToDatabase } from '@/lib/db';
 import { calculateScore, calculateDistance } from '@/lib/scoring';
 import { Place, FilterParams, PlaceDocument, RouletteRequest } from '@/utils/types';
 
+// Force dynamic rendering - this route uses request.json() which is dynamic
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body: RouletteRequest = await request.json();
