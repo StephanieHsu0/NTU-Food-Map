@@ -17,6 +17,19 @@
 
 **必須設定的環境變數：**
 
+- `NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY`: Google Maps JavaScript API Key
+  ```
+  AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  ```
+  **獲取方式：**
+  1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
+  2. 選擇或建立專案
+  3. 啟用 **Maps JavaScript API** 和 **Places API**
+  4. 建立 API Key
+  5. 設定 API Key 限制（HTTP referrer）：
+     - `https://ntu-food-map.vercel.app/*`
+     - `https://*.vercel.app/*` (預覽環境)
+  
 - `MONGODB_URI`: MongoDB Atlas 連線字串
   ```
   mongodb+srv://username:password@cluster.xxxxx.mongodb.net/database-name?retryWrites=true&w=majority

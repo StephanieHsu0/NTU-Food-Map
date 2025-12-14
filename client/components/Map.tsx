@@ -43,6 +43,7 @@ export default function Map({
   const locationMarkerRef = useRef<google.maps.Marker | null>(null);
   const locationInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const [showLocationInfo, setShowLocationInfo] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Debug: Log places when they change
   useEffect(() => {
@@ -53,14 +54,20 @@ export default function Map({
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
 
-  // Debug: Log API key status (only in development)
+  // Debug: Log API key status (always log for debugging)
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Google Maps API Key status:', {
-        hasKey: !!googleMapsApiKey,
-        keyLength: googleMapsApiKey.length,
-        keyPreview: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'empty',
-      });
+    console.log('🔍 Google Maps API Key Debug Info:', {
+      hasKey: !!googleMapsApiKey,
+      keyLength: googleMapsApiKey.length,
+      keyPreview: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'empty',
+      keyStartsWith: googleMapsApiKey ? googleMapsApiKey.substring(0, 4) : 'N/A',
+      isProduction: process.env.NODE_ENV === 'production',
+      envVar: process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY ? 'exists' : 'missing',
+    });
+    
+    // Warn if key seems invalid
+    if (googleMapsApiKey && (googleMapsApiKey.length < 20 || !googleMapsApiKey.startsWith('AIza'))) {
+      console.warn('⚠️ API Key format may be invalid. Google Maps API Keys usually start with "AIza" and are 39 characters long.');
     }
   }, [googleMapsApiKey]);
 
@@ -215,14 +222,45 @@ export default function Map({
     setInfoWindowPlace(null);
   };
 
-  if (!googleMapsApiKey || googleMapsApiKey === 'XXX') {
+  if (!googleMapsApiKey || googleMapsApiKey === 'XXX' || googleMapsApiKey.length < 20) {
     return (
       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-        <div className="text-center p-4">
-          <p className="text-red-600 font-semibold">Google Maps API Key 未設定</p>
-          <p className="text-sm text-gray-600 mt-2">
-            請在 .env 中設定 NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY
+        <div className="text-center p-4 max-w-md">
+          <p className="text-red-600 font-semibold text-lg mb-2">Google Maps API Key 未設定</p>
+          <p className="text-sm text-gray-600 mt-2 mb-4">
+            請在 Vercel 環境變數中設定 NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY
           </p>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+            <p className="font-semibold mb-1">設定步驟：</p>
+            <ol className="list-decimal list-inside space-y-1 text-left">
+              <li>前往 Vercel Dashboard → Settings → Environment Variables</li>
+              <li>添加變數名：NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY</li>
+              <li>填入您的 Google Maps API Key</li>
+              <li>選擇所有環境（Production, Preview, Development）</li>
+              <li>重新部署應用程式</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if LoadScript failed
+  if (loadError) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="text-center p-4 max-w-md">
+          <p className="text-red-600 font-semibold text-lg mb-2">Google Maps 載入失敗</p>
+          <p className="text-sm text-gray-600 mt-2 mb-4">{loadError}</p>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+            <p className="font-semibold mb-1">可能的原因：</p>
+            <ul className="list-disc list-inside space-y-1 text-left">
+              <li>API Key 無效或未啟用 Maps JavaScript API</li>
+              <li>API Key 限制設定不允許此網域</li>
+              <li>API 配額已用完</li>
+              <li>請檢查瀏覽器控制台（F12）以獲取詳細錯誤</li>
+            </ul>
+          </div>
         </div>
       </div>
     );
@@ -235,7 +273,15 @@ export default function Map({
         libraries={['places']}
         loadingElement={<div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading Google Maps...</div>}
         onError={(error) => {
-          console.error('Google Maps LoadScript error:', error);
+          console.error('❌ Google Maps LoadScript error:', error);
+          console.error('Error details:', {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+            apiKey: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'missing',
+          });
+          const errorMessage = error?.message || 'Unknown error';
+          setLoadError(`無法載入 Google Maps: ${errorMessage}`);
         }}
       >
         <GoogleMap
