@@ -492,7 +492,6 @@ export default function Map({
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: true,
-            language: mapLanguage,
           }}
         >
           {/* Search radius circle - managed via useEffect to ensure only one circle exists */}

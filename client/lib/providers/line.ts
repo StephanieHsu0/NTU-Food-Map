@@ -10,6 +10,10 @@ export interface LineProfile {
 export default function LineProvider(
   options: OAuthUserConfig<LineProfile>
 ): OAuthConfig<LineProfile> {
+  if (!options.clientId || !options.clientSecret) {
+    throw new Error('Line provider requires clientId and clientSecret');
+  }
+
   return {
     id: 'line',
     name: 'Line',
@@ -24,15 +28,15 @@ export default function LineProvider(
     token: 'https://api.line.me/oauth2/v2.1/token',
     userinfo: 'https://api.line.me/v2/profile',
     client: {
-      id: options.clientId!,
-      secret: options.clientSecret!,
+      id: options.clientId,
+      secret: options.clientSecret,
     },
-    async profile(profile) {
+    async profile(profile: LineProfile) {
       return {
         id: profile.userId,
         name: profile.displayName,
         email: null, // Line doesn't provide email by default
-        image: profile.pictureUrl,
+        image: profile.pictureUrl || undefined,
       };
     },
     style: {
@@ -42,3 +46,4 @@ export default function LineProvider(
     },
   };
 }
+

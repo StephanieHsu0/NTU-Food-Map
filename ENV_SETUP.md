@@ -59,10 +59,12 @@ DB_NAME=ntu-foodmap-db
 **獲取步驟**:
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
 2. 選擇或建立專案
-3. 啟用 **Google+ API**
+3. 啟用 **Google+ API** 或 **Google Identity Services API**
 4. 前往「憑證」→「建立憑證」→「OAuth 用戶端 ID」
 5. 應用程式類型選擇「網頁應用程式」
-6. 授權重新導向 URI: `http://localhost:3000/api/auth/callback/google` (開發環境)
+6. 授權重新導向 URI 需要設定以下兩個：
+   - 開發環境: `http://localhost:3000/api/auth/callback/google`
+   - 生產環境: `https://ntu-food-map.vercel.app/api/auth/callback/google`
 7. 複製 Client ID 和 Client Secret
 
 **範例**:
@@ -78,7 +80,9 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 1. 前往 [Line Developers Console](https://developers.line.biz/)
 2. 建立新 Provider 或選擇現有 Provider
 3. 建立新 Channel (選擇 LINE Login)
-4. 設定 Callback URL: `http://localhost:3000/api/auth/callback/line` (開發環境)
+4. 設定 Callback URL（需要設定以下兩個）：
+   - 開發環境: `http://localhost:3000/api/auth/callback/line`
+   - 生產環境: `https://ntu-food-map.vercel.app/api/auth/callback/line`
 5. 複製 Channel ID 和 Channel Secret
 
 **範例**:
@@ -96,7 +100,7 @@ LINE_CHANNEL_SECRET=your-line-channel-secret
 AUTH_URL=http://localhost:3000
 
 # 生產環境 (Vercel)
-AUTH_URL=https://your-domain.vercel.app
+AUTH_URL=https://ntu-food-map.vercel.app
 ```
 
 #### ✅ `AUTH_SECRET` (新增，NextAuth v5)

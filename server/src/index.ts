@@ -15,7 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = process.env.SERVER_PORT ? parseInt(process.env.SERVER_PORT, 10) : 3001;
 
 // Middleware
 app.use(cors());
@@ -49,7 +49,7 @@ process.on('SIGTERM', async () => {
 });
 
 // 在部署環境中，Railway/Render 會自動設定 PORT
-const serverPort = process.env.PORT || PORT;
+const serverPort = process.env.PORT ? parseInt(process.env.PORT, 10) : PORT;
 
 app.listen(serverPort, '0.0.0.0', () => {
   console.log(`Server is running on port ${serverPort}`);
