@@ -21,6 +21,8 @@ export default function HomePage() {
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
+  // Base point (點A) - the center point for search, separate from selectedLocation
+  const [basePoint, setBasePoint] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useGooglePlaces, setUseGooglePlaces] = useState(true); // Toggle between Google Places and database
@@ -35,17 +37,17 @@ export default function HomePage() {
 
   useEffect(() => {
     // Load places when filters change
-    // For Google Places: wait for map to load, then use selectedLocation or default location
+    // For Google Places: wait for map to load, then use basePoint or default location
     // For database: load immediately
     if (!useGooglePlaces) {
       // Database mode: load immediately
       loadPlaces();
     } else if (mapLoaded) {
       // Google Places mode: wait for map to load, then load places
-      // Use selectedLocation if available, otherwise use default location from filters
+      // Use basePoint if available, otherwise use default location from filters
       loadPlaces();
     }
-  }, [filters, useGooglePlaces, selectedLocation, mapLoaded]);
+  }, [filters, useGooglePlaces, basePoint, mapLoaded]);
 
   const loadPlaces = async () => {
     setLoading(true);
@@ -54,7 +56,8 @@ export default function HomePage() {
       console.log('Loading places with filters:', filters);
       
       // Use Google Places API if enabled and location is selected (or use default location)
-      const searchLocation = selectedLocation || { lat: filters.lat || 25.0170, lng: filters.lng || 121.5395 };
+      // Use basePoint as the search center, fallback to filters or default
+      const searchLocation = basePoint || { lat: filters.lat || 25.0170, lng: filters.lng || 121.5395 };
       if (useGooglePlaces && mapLoaded) {
         try {
           const data = await searchNearbyPlaces(
@@ -104,10 +107,8 @@ export default function HomePage() {
 
   const handlePlaceSelect = (place: Place) => {
     setSelectedPlace(place);
-    // Clear selectedLocation when selecting a place to avoid showing multiple circles
-    // The circle should only show when user explicitly sets a search center via map click or "查看附近餐廳" button
-    setSelectedLocation(null);
-    // Update map center to the selected place
+    // Don't change basePoint when selecting a place - basePoint should remain unchanged
+    // Only update map center for viewing, but keep basePoint for search
     setFilters({
       ...filters,
       lat: place.lat,
@@ -118,7 +119,9 @@ export default function HomePage() {
   const handleMapClick = async (lat: number, lng: number) => {
     console.log('Map clicked at:', lat, lng);
     
-    // Set location immediately with coordinates
+    // Set basePoint (點A) immediately with coordinates
+    setBasePoint({ lat, lng });
+    // Also set selectedLocation for display purposes
     setSelectedLocation({ lat, lng });
     
     // Get place name at this location asynchronously
@@ -126,8 +129,9 @@ export default function HomePage() {
       try {
         const placeName = await getPlaceNameAtLocation(lat, lng);
         console.log('Place name at location:', placeName);
-        // Update location with name if found
+        // Update basePoint and selectedLocation with name if found
         if (placeName) {
+          setBasePoint({ lat, lng, name: placeName });
           setSelectedLocation({ lat, lng, name: placeName });
         }
       } catch (error) {
@@ -135,7 +139,7 @@ export default function HomePage() {
       }
     }
     
-    // Update filters with new location
+    // Update filters with new location for search
     setFilters({
       ...filters,
       lat,
@@ -144,9 +148,12 @@ export default function HomePage() {
   };
 
   const handleLocationSelect = async (lat: number, lng: number, name?: string) => {
-    console.log('Location selected from marker:', lat, lng, name);
+    console.log('Location selected from marker (view nearby):', lat, lng, name);
+    // This is called when user clicks "查看附近餐廳" button
+    // Set this as the new basePoint
+    setBasePoint({ lat, lng, name });
     setSelectedLocation({ lat, lng, name });
-    // Update filters with new location
+    // Update filters with new location for search
     setFilters({
       ...filters,
       lat,
@@ -160,7 +167,8 @@ export default function HomePage() {
 
   const handleReset = () => {
     console.log('🔄 Reset button clicked');
-    // Reset selected location
+    // Reset basePoint and selected location
+    setBasePoint(null);
     setSelectedLocation(null);
     // Reset selected place
     setSelectedPlace(null);
@@ -176,7 +184,7 @@ export default function HomePage() {
     // Clear places
     setPlaces([]);
     setFilteredPlaces([]);
-    console.log('✅ Reset completed, selectedLocation:', null, 'selectedPlace:', null);
+    console.log('✅ Reset completed, basePoint:', null, 'selectedLocation:', null, 'selectedPlace:', null);
   };
 
   return (
@@ -184,17 +192,17 @@ export default function HomePage() {
       <div className="w-1/3 border-r bg-white overflow-y-auto">
         <div className="p-4 border-b">
           <h2 className="text-xl font-semibold mb-4 text-gray-900">{t('filters.title')}</h2>
-          {useGooglePlaces && !selectedLocation && (
+          {useGooglePlaces && !basePoint && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-800">
               💡 {t('map.clickToSelectCenter')}
             </p>
           </div>
           )}
-          {useGooglePlaces && selectedLocation && (
+          {useGooglePlaces && basePoint && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-800">
-              ✓ {t('map.selectedLocation')}：{selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`}
+              ✓ {t('map.basePoint')}：{basePoint.name || `(${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)})`}
             </p>
           </div>
           )}
@@ -220,6 +228,7 @@ export default function HomePage() {
           center={[filters.lat || 25.0170, filters.lng || 121.5395]}
           onMapClick={handleMapClick}
           selectedLocation={selectedLocation}
+          basePoint={basePoint}
           onMapLoad={handleMapLoad}
           radius={filters.radius}
           onLocationSelect={handleLocationSelect}

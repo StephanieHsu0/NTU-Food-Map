@@ -53,6 +53,67 @@ MONGODB_URI=mongodb+srv://username:password@cluster.xxxxx.mongodb.net/dbname?ret
 DB_NAME=ntu-foodmap-db
 ```
 
+#### ✅ `GOOGLE_CLIENT_ID` (新增)
+**用途**: Google OAuth 登入
+
+**獲取步驟**:
+1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
+2. 選擇或建立專案
+3. 啟用 **Google+ API**
+4. 前往「憑證」→「建立憑證」→「OAuth 用戶端 ID」
+5. 應用程式類型選擇「網頁應用程式」
+6. 授權重新導向 URI: `http://localhost:3000/api/auth/callback/google` (開發環境)
+7. 複製 Client ID 和 Client Secret
+
+**範例**:
+```env
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+#### ✅ `LINE_CHANNEL_ID` (新增)
+**用途**: Line OAuth 登入
+
+**獲取步驟**:
+1. 前往 [Line Developers Console](https://developers.line.biz/)
+2. 建立新 Provider 或選擇現有 Provider
+3. 建立新 Channel (選擇 LINE Login)
+4. 設定 Callback URL: `http://localhost:3000/api/auth/callback/line` (開發環境)
+5. 複製 Channel ID 和 Channel Secret
+
+**範例**:
+```env
+LINE_CHANNEL_ID=your-line-channel-id
+LINE_CHANNEL_SECRET=your-line-channel-secret
+```
+
+#### ✅ `AUTH_URL` (新增，NextAuth v5)
+**用途**: NextAuth.js 基礎 URL（NextAuth v5 使用 `AUTH_URL` 而非 `NEXTAUTH_URL`）
+
+**範例**:
+```env
+# 開發環境
+AUTH_URL=http://localhost:3000
+
+# 生產環境 (Vercel)
+AUTH_URL=https://your-domain.vercel.app
+```
+
+#### ✅ `AUTH_SECRET` (新增，NextAuth v5)
+**用途**: NextAuth.js 加密密鑰（用於 JWT 簽名，NextAuth v5 使用 `AUTH_SECRET` 而非 `NEXTAUTH_SECRET`）
+
+**產生方式**:
+```bash
+openssl rand -base64 32
+```
+
+**範例**:
+```env
+AUTH_SECRET=your-generated-secret-key-here
+```
+
+**注意**: NextAuth v5 也支援 `NEXTAUTH_URL` 和 `NEXTAUTH_SECRET` 作為向後兼容，但建議使用新的 `AUTH_URL` 和 `AUTH_SECRET`。
+
 ### 根目錄 `.env`（可選）
 
 #### `GOOGLE_PLACES_API_KEY`
@@ -71,6 +132,12 @@ DB_NAME=ntu-foodmap-db
 
 ### ⚠️ 需要設定
 - `NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY` (client/.env.local) - **已新增欄位，請填入實際 API Key**
+- `GOOGLE_CLIENT_ID` (client/.env.local) - **OAuth 登入所需**
+- `GOOGLE_CLIENT_SECRET` (client/.env.local) - **OAuth 登入所需**
+- `LINE_CHANNEL_ID` (client/.env.local) - **OAuth 登入所需（選填）**
+- `LINE_CHANNEL_SECRET` (client/.env.local) - **OAuth 登入所需（選填）**
+- `AUTH_URL` (client/.env.local) - **NextAuth.js v5 所需**
+- `AUTH_SECRET` (client/.env.local) - **NextAuth.js v5 所需**
 
 ## 🚀 設定步驟
 

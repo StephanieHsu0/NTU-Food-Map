@@ -9,6 +9,8 @@ import { fetchPlace } from '@/utils/api';
 import { getPlaceDetails } from '@/utils/googlePlaces';
 import { Place } from '@/utils/types';
 import ScoreBreakdown from '@/components/ScoreBreakdown';
+import CommentSection from '@/components/CommentSection';
+import FavoriteButton from '@/components/FavoriteButton';
 
 export default function PlaceDetailPage() {
   const params = useParams();
@@ -344,6 +346,12 @@ export default function PlaceDetailPage() {
                 </p>
               </div>
             )}
+
+            {/* Favorite Button */}
+            {place.id && <FavoriteButton placeId={place.id} />}
+
+            {/* Comments Section */}
+            {place.id && <CommentSection placeId={place.id} />}
           </div>
         </div>
       </div>

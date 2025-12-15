@@ -27,10 +27,13 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "selectLocation": "Selected Location",
+    "basePoint": "Base Point",
     "viewDetails": "View Details",
     "viewNearby": "View Nearby Restaurants",
     "clickToSelectCenter": "Click on a location on the map to select the search center. The system will use Google Maps restaurant information for filtering.",
-    "selectedLocation": "Selected location"
+    "selectedLocation": "Selected location",
+    "distanceFromBasePoint": "Distance from Base Point",
+    "viewRoute": "View Route"
   },
   "filters": {
     "title": "Filters",
@@ -109,6 +112,88 @@
     "popularity": "Popularity",
     "openStatus": "Open Status",
     "context": "Context"
+  },
+  "usageInstructions": {
+    "title": "Usage Instructions",
+    "button": "Instructions",
+    "close": "Close",
+    "sections": {
+      "features": {
+        "title": "Feature Usage",
+        "content": [
+          "1. Click on a location on the map to set the base point (Point A). The system will search for nearby restaurants centered on this point",
+          "2. Use the filters on the left to set search criteria: distance, rating, price, categories, etc.",
+          "3. Click on a restaurant from the filter results (Point B) to view details. The base point will not change",
+          "4. Click the \"View Nearby Restaurants\" button in the restaurant details to change the base point to that restaurant",
+          "5. Click the \"Reset\" button to clear all settings and start over"
+        ]
+      },
+      "design": {
+        "title": "Design Explanation",
+        "priceStandard": {
+          "title": "Price Level Standard",
+          "content": "Price levels are based on Google Places API's price_level setting:",
+          "levels": {
+            "1": "$ - Inexpensive: Usually snacks, street vendors, etc. Average cost around NT$100 or less",
+            "2": "$$ - Moderate: General restaurants, cafes, etc. Average cost around NT$100-300",
+            "3": "$$$ - Expensive: Mid-to-high-end restaurants. Average cost around NT$300-600",
+            "4": "$$$$ - Very Expensive: High-end restaurants. Average cost around NT$600 or more"
+          }
+        },
+        "ratingStandard": {
+          "title": "Rating Standard",
+          "content": "Ratings come from Google Maps user reviews, ranging from 0-5 stars. The system displays average ratings and review counts"
+        },
+        "distanceStandard": {
+          "title": "Distance Calculation",
+          "content": "Distance is calculated using straight-line distance (Haversine formula) in meters or kilometers. Click \"View Route\" to open Google Maps and see the actual route"
+        }
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithLine": "Sign in with Line",
+    "selectSignInMethod": "Please select a sign-in method",
+    "loading": "Loading...",
+    "signInRequired": "Please sign in",
+    "signInToComment": "Sign in to comment",
+    "signInToFavorite": "Sign in to favorite"
+  },
+  "comments": {
+    "title": "Comments",
+    "addComment": "Add Comment",
+    "editComment": "Edit Comment",
+    "deleteComment": "Delete Comment",
+    "commentContent": "Comment Content",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "like": "Like",
+    "dislike": "Dislike",
+    "likes": "Likes",
+    "dislikes": "Dislikes",
+    "edited": "Edited",
+    "sortBy": "Sort By",
+    "sortByTime": "Post Time",
+    "sortByLikes": "Like Count",
+    "noComments": "No comments yet",
+    "rating": "Rating",
+    "selectRating": "Select Rating (Optional)"
+  },
+  "favorites": {
+    "title": "My Favorites",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "note": "Note",
+    "addNote": "Add Note",
+    "editNote": "Edit Note",
+    "saveNote": "Save Note",
+    "noFavorites": "No favorites yet",
+    "favorited": "Favorited"
   }
 }
 

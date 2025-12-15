@@ -2,7 +2,11 @@
 
 ## 資料庫結構
 
-本專案使用 MongoDB Atlas 作為資料庫，主要集合（Collection）為 `places`。
+本專案使用 MongoDB Atlas 作為資料庫，主要集合（Collection）包括：
+- `places` - 店家資訊
+- `users` - 使用者資訊（OAuth）
+- `comments` - 使用者留言
+- `favorites` - 使用者收藏
 
 ## Places Collection Schema
 
@@ -102,4 +106,66 @@ MongoDB 使用 `$near` 操作符進行地理空間查詢：
   "updated_at": ISODate("2024-01-01T00:00:00Z")
 }
 ```
+
+## Users Collection Schema
+
+```typescript
+{
+  _id: ObjectId,              // MongoDB 自動生成的 ID
+  oauth_provider: 'google' | 'line',  // OAuth 提供者
+  oauth_id: string,           // Provider 提供的唯一 ID
+  email?: string,             // 電子郵件（可選）
+  name: string,               // 使用者名稱
+  avatar_url?: string,        // 頭像 URL（可選）
+  created_at: Date,          // 建立時間
+  updated_at: Date           // 更新時間
+}
+```
+
+## Comments Collection Schema
+
+```typescript
+{
+  _id: ObjectId,              // MongoDB 自動生成的 ID
+  place_id: string,           // 店家 ID（Google Place ID 或資料庫 ID）
+  user_id: ObjectId,          // 使用者 ID（引用 Users）
+  content: string,            // 留言內容
+  rating?: number,           // 評分 (1-5)（可選）
+  edited: boolean,           // 是否已編輯
+  edited_at?: Date,          // 編輯時間（可選）
+  created_at: Date,          // 建立時間
+  likes: number,             // 按讚數
+  dislikes: number,         // 倒讚數
+  user_likes: ObjectId[],    // 按讚的使用者 ID 陣列
+  user_dislikes: ObjectId[]  // 倒讚的使用者 ID 陣列
+}
+```
+
+## Favorites Collection Schema
+
+```typescript
+{
+  _id: ObjectId,              // MongoDB 自動生成的 ID
+  user_id: ObjectId,          // 使用者 ID（引用 Users）
+  place_id: string,           // 店家 ID（Google Place ID 或資料庫 ID）
+  note?: string,              // 使用者備註（可選）
+  created_at: Date           // 建立時間
+}
+```
+
+## 新增索引（Indexes）
+
+以下索引需要在連線時建立：
+
+### Users Collection
+1. **Compound unique index on `oauth_provider` + `oauth_id`** - 確保每個 OAuth 帳號唯一
+
+### Comments Collection
+1. **Index on `place_id`** - 用於查詢特定店家的留言
+2. **Index on `user_id`** - 用於查詢特定使用者的留言
+3. **Index on `created_at`** - 用於時間排序
+
+### Favorites Collection
+1. **Compound unique index on `user_id` + `place_id`** - 確保每個使用者對同一店家只能收藏一次
+2. **Index on `user_id`** - 用於查詢特定使用者的收藏
 

@@ -27,10 +27,13 @@
     "zoomIn": "放大",
     "zoomOut": "縮小",
     "selectLocation": "選擇的位置",
+    "basePoint": "基準點",
     "viewDetails": "查看詳情",
     "viewNearby": "查看附近餐廳",
     "clickToSelectCenter": "點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選",
-    "selectedLocation": "已選擇位置"
+    "selectedLocation": "已選擇位置",
+    "distanceFromBasePoint": "距離基準點",
+    "viewRoute": "查看路徑"
   },
   "filters": {
     "title": "篩選條件",
@@ -109,6 +112,88 @@
     "popularity": "人氣",
     "openStatus": "營業狀態",
     "context": "使用情境"
+  },
+  "usageInstructions": {
+    "title": "使用說明",
+    "button": "使用說明",
+    "close": "關閉",
+    "sections": {
+      "features": {
+        "title": "功能使用說明",
+        "content": [
+          "1. 點擊地圖上的位置設定基準點（點A），系統會以此點為中心搜尋附近的餐廳",
+          "2. 使用左側篩選器設定搜尋條件：距離、評分、價位、類別等",
+          "3. 點選篩選結果中的餐廳（點B）可查看詳情，基準點不會改變",
+          "4. 在餐廳詳情中點擊「查看附近餐廳」按鈕，才會將基準點改為該餐廳",
+          "5. 點擊「重置」按鈕可清除所有設定並重新開始"
+        ]
+      },
+      "design": {
+        "title": "設計說明",
+        "priceStandard": {
+          "title": "價位標準",
+          "content": "價位等級根據 Google Places API 的 price_level 設定：",
+          "levels": {
+            "1": "$ - 平價：通常為小吃、路邊攤等，平均消費約 100 元以下",
+            "2": "$$ - 中等：一般餐廳、咖啡廳等，平均消費約 100-300 元",
+            "3": "$$$ - 較貴：中高檔餐廳，平均消費約 300-600 元",
+            "4": "$$$$ - 昂貴：高檔餐廳，平均消費約 600 元以上"
+          }
+        },
+        "ratingStandard": {
+          "title": "評分標準",
+          "content": "評分來自 Google Maps 的使用者評價，範圍為 0-5 分，系統會顯示平均評分和評價數量"
+        },
+        "distanceStandard": {
+          "title": "距離計算",
+          "content": "距離使用直線距離（Haversine formula）計算，單位為公尺或公里。點擊「查看路徑」可開啟 Google Maps 查看實際路線"
+        }
+      }
+    }
+  },
+  "auth": {
+    "signIn": "登入",
+    "signOut": "登出",
+    "signInWithGoogle": "使用 Google 登入",
+    "signInWithLine": "使用 Line 登入",
+    "selectSignInMethod": "請選擇登入方式",
+    "loading": "載入中...",
+    "signInRequired": "請先登入",
+    "signInToComment": "登入後即可留言",
+    "signInToFavorite": "登入後即可收藏"
+  },
+  "comments": {
+    "title": "留言",
+    "addComment": "新增留言",
+    "editComment": "編輯留言",
+    "deleteComment": "刪除留言",
+    "commentContent": "留言內容",
+    "submit": "送出",
+    "cancel": "取消",
+    "edit": "編輯",
+    "delete": "刪除",
+    "like": "讚",
+    "dislike": "倒讚",
+    "likes": "讚",
+    "dislikes": "倒讚",
+    "edited": "已編輯",
+    "sortBy": "排序方式",
+    "sortByTime": "發文時間",
+    "sortByLikes": "按讚數量",
+    "noComments": "尚無留言",
+    "rating": "評分",
+    "selectRating": "選擇評分（選填）"
+  },
+  "favorites": {
+    "title": "我的收藏",
+    "addToFavorites": "加入收藏",
+    "removeFromFavorites": "移除收藏",
+    "note": "備註",
+    "addNote": "新增備註",
+    "editNote": "編輯備註",
+    "saveNote": "儲存備註",
+    "noFavorites": "尚無收藏",
+    "favorited": "已收藏"
   }
 }
 
