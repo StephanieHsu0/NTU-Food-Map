@@ -103,7 +103,13 @@
     "spin": "Spin",
     "result": "Result",
     "selectedPlace": "Selected Place",
-    "tryAgain": "Spin Again"
+    "tryAgain": "Spin Again",
+    "ready": "Ready",
+    "availablePlaces": "Available Places",
+    "places": "places",
+    "noPlacesAvailable": "No restaurants match the current filters. Please adjust your filters and try again.",
+    "countError": "Unable to get place count",
+    "spinError": "Failed to spin roulette. Please try again later."
   },
   "scoreBreakdown": {
     "title": "Score Breakdown",

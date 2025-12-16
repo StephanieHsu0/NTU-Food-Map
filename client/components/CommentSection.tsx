@@ -345,3 +345,4 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
     </div>
   );
 }
+

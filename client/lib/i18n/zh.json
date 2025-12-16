@@ -103,7 +103,13 @@
     "spin": "轉動",
     "result": "結果",
     "selectedPlace": "選中的店家",
-    "tryAgain": "再轉一次"
+    "tryAgain": "再轉一次",
+    "ready": "準備就緒",
+    "availablePlaces": "符合條件的餐廳數量",
+    "places": "間",
+    "noPlacesAvailable": "目前沒有符合篩選條件的餐廳，請調整篩選條件後再試",
+    "countError": "無法取得餐廳數量",
+    "spinError": "轉盤失敗，請稍後再試"
   },
   "scoreBreakdown": {
     "title": "推薦分數分解",

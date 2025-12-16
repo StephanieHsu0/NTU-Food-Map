@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import Sidebar from '@/components/Sidebar';
 import Filters from '@/components/Filters';
+import RouletteModal from '@/components/RouletteModal';
 import { fetchPlaces } from '@/utils/api';
 import { searchNearbyPlaces, getPlaceNameAtLocation } from '@/utils/googlePlaces';
 import { Place, FilterParams } from '@/utils/types';
@@ -27,6 +28,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [useGooglePlaces, setUseGooglePlaces] = useState(true); // Toggle between Google Places and database
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [rouletteModalOpen, setRouletteModalOpen] = useState(false);
   const [filters, setFilters] = useState<FilterParams>({
     lat: 25.0170, // NTU approximate center
     lng: 121.5395,
@@ -191,7 +193,16 @@ export default function HomePage() {
     <div className="flex h-[calc(100vh-80px)]">
       <div className="w-1/3 border-r bg-white overflow-y-auto">
         <div className="p-4 border-b">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">{t('filters.title')}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">{t('filters.title')}</h2>
+            <button
+              onClick={() => setRouletteModalOpen(true)}
+              className="px-4 py-2 bg-primary-600 text-white rounded-md font-semibold hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <span className="text-lg">🎰</span>
+              <span>{t('roulette.title')}</span>
+            </button>
+          </div>
           {useGooglePlaces && !basePoint && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-800">
@@ -234,6 +245,15 @@ export default function HomePage() {
           onLocationSelect={handleLocationSelect}
         />
       </div>
+
+      {/* Roulette Modal */}
+      <RouletteModal
+        isOpen={rouletteModalOpen}
+        onClose={() => setRouletteModalOpen(false)}
+        filters={filters}
+        filteredPlaces={filteredPlaces}
+        onPlaceSelect={handlePlaceSelect}
+      />
     </div>
   );
 }

@@ -172,3 +172,4 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
     </div>
   );
 }
+
