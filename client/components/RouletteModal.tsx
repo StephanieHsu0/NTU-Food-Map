@@ -37,16 +37,6 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
     }
   }, [isOpen]);
 
-  // Scroll to top when result appears
-  useEffect(() => {
-    if (result && contentRef.current) {
-      // use RAF to ensure DOM updated before scrolling
-      requestAnimationFrame(() => {
-        contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    }
-  }, [result]);
-
   const handleSpin = async () => {
     if (availableCount === 0 || filteredPlaces.length === 0) {
       setError(t('roulette.noPlacesAvailable'));
@@ -100,7 +90,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
           {/* Content */}
           <div
             ref={contentRef}
-            className="flex flex-col items-center justify-center p-6 lg:p-8 overflow-y-auto bg-white max-h-[80vh]"
+            className="flex flex-col items-center justify-start p-6 lg:p-8 overflow-y-auto bg-white max-h-[80vh]"
           >
             <div className="max-w-2xl w-full text-center">
               <p className="text-gray-600 mb-6 lg:mb-8 text-sm lg:text-base">{t('roulette.subtitle')}</p>
@@ -186,58 +176,92 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
 
               {/* Result Display */}
               {result && (
-                <div className="mt-8 bg-white rounded-lg shadow-lg p-6 text-left border border-gray-200">
-                  <h2 className="text-2xl font-bold mb-4 text-center">{t('roulette.selectedPlace')}</h2>
-                  <div>
-                    <h3 className="text-xl font-semibold mb-2">
-                      {(() => {
-                        const preferred = (locale === 'zh' ? result.name_zh : result.name_en)?.trim();
-                        const fallback = (locale === 'zh' ? result.name_en : result.name_zh)?.trim();
-                        return preferred || fallback || t('place.unknownPlace');
-                      })()}
-                    </h3>
-                    <div className="space-y-2 text-gray-700">
-                      <div>
-                        <span className="font-medium">{t('place.rating')}: </span>
-                        {result.rating.toFixed(1)} ({result.rating_count})
-                      </div>
-                      <div>
-                        <span className="font-medium">{t('place.price')}: </span>
-                        {'$'.repeat(result.price_level)}
-                      </div>
-                      {result.distance_m && (
-                        <div>
-                          <span className="font-medium">{t('place.distance')}: </span>
-                          {(result.distance_m / 1000).toFixed(2)} km
+                <div className="mt-8 w-full max-w-2xl bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+                  {(() => {
+                    const primaryName = locale === 'zh' ? result.name_zh : result.name_en;
+                    const secondaryName = locale === 'zh' ? result.name_en : result.name_zh;
+                    const displayName = primaryName || secondaryName || t('place.unknownPlace');
+
+                    return (
+                      <div className="flex items-start justify-between gap-4 border-b pb-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-11 w-11 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xl">
+                            🎉
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                              {t('roulette.selectedPlace')}
+                            </p>
+                            <h3 className="text-xl font-bold text-gray-900 leading-tight">{displayName}</h3>
+                            {secondaryName && (
+                              <p className="text-sm text-gray-500 mt-1">{secondaryName}</p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {result.categories.length > 0 && (
-                        <div>
-                          <span className="font-medium">{t('place.categories')}: </span>
-                          {result.categories.join(', ')}
-                        </div>
-                      )}
+                        <button
+                          onClick={handleSpin}
+                          disabled={spinning || availableCount === 0}
+                          className="px-3 py-2 text-sm bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                          type="button"
+                        >
+                          {t('roulette.tryAgain')}
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-gray-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">⭐</span>
+                      <span className="font-semibold">{t('place.rating')}:</span>
+                      <span className="ml-1 font-bold">{result.rating.toFixed(1)}</span>
+                      <span className="text-gray-500 ml-1">({result.rating_count})</span>
                     </div>
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => {
-                          if (result) {
-                            onPlaceSelect(result);
-                            onClose();
-                          }
-                        }}
-                        className="inline-block px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-                      >
-                        {t('place.details')}
-                      </button>
-                      <button
-                        onClick={handleSpin}
-                        disabled={spinning || availableCount === 0}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {t('roulette.tryAgain')}
-                      </button>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600">$</span>
+                      <span className="font-semibold">{t('place.price')}:</span>
+                      <span className="ml-1">{'$'.repeat(result.price_level)}</span>
                     </div>
+
+                    {result.distance_m && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-500">📍</span>
+                        <span className="font-semibold">{t('place.distance')}:</span>
+                        <span className="ml-1">{(result.distance_m / 1000).toFixed(2)} km</span>
+                      </div>
+                    )}
+
+                    {result.categories.length > 0 && (
+                      <div className="flex items-center gap-2 sm:col-span-2">
+                        <span className="text-purple-600">🏷️</span>
+                        <span className="font-semibold">{t('place.categories')}:</span>
+                        <span className="ml-1 text-gray-700">{result.categories.join(' / ')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        if (result) {
+                          onPlaceSelect(result);
+                          onClose();
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-primary-600 text-white rounded-lg shadow hover:bg-primary-700 transition"
+                      type="button"
+                    >
+                      {t('place.details')}
+                    </button>
+                    <button
+                      onClick={handleSpin}
+                      disabled={spinning || availableCount === 0}
+                      className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      type="button"
+                    >
+                      {t('roulette.tryAgain')}
+                    </button>
                   </div>
                 </div>
               )}
