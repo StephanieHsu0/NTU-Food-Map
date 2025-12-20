@@ -12,19 +12,20 @@ export default function PlaceCard({ place }: PlaceCardProps) {
   const name = locale === 'zh' ? place.name_zh : place.name_en;
 
   return (
-    <div>
-      <h3 className="font-semibold text-lg mb-1 text-gray-900">{name}</h3>
+    <div className="transition-colors">
+      <h3 className="font-semibold text-lg mb-1.5 text-text-primary leading-tight">{name}</h3>
       {locale === 'zh' && place.name_en && (
-        <p className="text-sm text-gray-600 mb-2">{place.name_en}</p>
+        <p className="text-sm text-text-secondary mb-3">{place.name_en}</p>
       )}
-      <div className="flex items-center gap-3 text-sm text-gray-600">
-        <span className="flex items-center">
-          ⭐ {place.rating.toFixed(1)}
-          <span className="text-gray-400 ml-1">({place.rating_count})</span>
+      <div className="flex items-center flex-wrap gap-3 text-sm mb-3">
+        <span className="flex items-center text-text-primary">
+          <span className="text-yellow-500 mr-1">⭐</span>
+          <span className="font-medium">{place.rating.toFixed(1)}</span>
+          <span className="text-text-secondary ml-1">({place.rating_count})</span>
         </span>
-        <span className="text-gray-900">{'$'.repeat(place.price_level)}</span>
+        <span className="text-text-primary font-medium">{'$'.repeat(place.price_level)}</span>
         {place.distance_m && (
-          <span className="text-gray-700">{(place.distance_m / 1000).toFixed(2)} km</span>
+          <span className="text-text-secondary">{(place.distance_m / 1000).toFixed(2)} km</span>
         )}
         {place.score && (
           <span className="text-primary-600 font-semibold">
@@ -33,11 +34,11 @@ export default function PlaceCard({ place }: PlaceCardProps) {
         )}
       </div>
       {place.categories.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {place.categories.slice(0, 3).map((cat, idx) => (
             <span
               key={idx}
-              className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
+              className="px-2.5 py-1 bg-gray-50 text-text-secondary rounded-full text-xs border border-divider"
             >
               {cat}
             </span>

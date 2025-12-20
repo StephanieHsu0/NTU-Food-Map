@@ -189,14 +189,14 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
 
   return (
     <div className="mt-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-900">{t('comments.title')}</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold text-text-primary">{t('comments.title')}</h2>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-700">{t('comments.sortBy')}:</label>
+          <label className="text-sm text-text-secondary font-medium">{t('comments.sortBy')}:</label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'time' | 'likes')}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+            className="border border-divider rounded-xl px-3 py-1.5 text-sm text-text-primary bg-white hover:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors"
           >
             <option value="time">{t('comments.sortByTime')}</option>
             <option value="likes">{t('comments.sortByLikes')}</option>
@@ -205,27 +205,27 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
       </div>
 
       {session && (showForm || comments.length === 0) && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <form onSubmit={handleSubmit} className="mb-6 p-5 bg-white rounded-xl border border-divider shadow-sm">
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-primary mb-2">
               {t('comments.commentContent')}
             </label>
             <textarea
               value={formContent}
               onChange={(e) => setFormContent(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+              className="w-full border border-divider rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors"
               rows={4}
               required
             />
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-primary mb-2">
               {t('comments.selectRating')}
             </label>
             <select
               value={formRating || ''}
               onChange={(e) => setFormRating(e.target.value ? parseInt(e.target.value) : null)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+              className="border border-divider rounded-xl px-4 py-2.5 text-text-primary bg-white hover:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors"
             >
               <option value="">{t('common.close')}</option>
               <option value="5">5 ⭐</option>
@@ -235,10 +235,10 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
               <option value="1">1 ⭐</option>
             </select>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              className="px-5 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md"
             >
               {editingId ? t('comments.editComment') : t('comments.addComment')}
             </button>
@@ -246,7 +246,7 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                className="px-5 py-2.5 bg-white text-text-secondary border border-divider rounded-xl hover:bg-gray-50 transition-all font-medium"
               >
                 {t('comments.cancel')}
               </button>
@@ -256,13 +256,13 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
       )}
 
       {!session && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <p className="text-blue-800">{t('auth.signInToComment')}</p>
         </div>
       )}
 
       {comments.length === 0 ? (
-        <p className="text-gray-600">{t('comments.noComments')}</p>
+        <p className="text-text-secondary">{t('comments.noComments')}</p>
       ) : (
         <div className="space-y-4">
           {comments.map((comment) => {
@@ -273,7 +273,7 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
             const userDisliked = currentUserId && comment.user_dislikes.includes(currentUserId);
 
             return (
-              <div key={comment.id} className="border-b border-gray-200 pb-4">
+              <div key={comment.id} className="border-b border-divider pb-4 last:border-b-0">
                 <div className="flex items-start gap-3">
                   {comment.user_avatar && (
                     <Image
@@ -281,39 +281,39 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
                       alt={comment.user_name}
                       width={40}
                       height={40}
-                      className="rounded-full"
+                      className="rounded-full border border-divider"
                     />
                   )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-gray-900">{comment.user_name}</span>
+                      <span className="font-semibold text-text-primary">{comment.user_name}</span>
                       {comment.rating && (
                         <span className="text-yellow-500">⭐ {comment.rating}</span>
                       )}
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-text-secondary">
                         {new Date(comment.created_at).toLocaleDateString()}
                       </span>
                       {comment.edited && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-text-secondary">
                           ({t('comments.edited')}
                           {comment.edited_at && ` ${new Date(comment.edited_at).toLocaleDateString()}`})
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-700 mb-2">{comment.content}</p>
+                    <p className="text-text-primary mb-3">{comment.content}</p>
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => handleLike(comment.id)}
-                        className={`flex items-center gap-1 text-sm ${
-                          userLiked ? 'text-blue-600 font-semibold' : 'text-gray-600'
+                        className={`flex items-center gap-1 text-sm transition-colors ${
+                          userLiked ? 'text-primary-600 font-semibold' : 'text-text-secondary hover:text-primary-600'
                         }`}
                       >
                         👍 {comment.likes}
                       </button>
                       <button
                         onClick={() => handleDislike(comment.id)}
-                        className={`flex items-center gap-1 text-sm ${
-                          userDisliked ? 'text-red-600 font-semibold' : 'text-gray-600'
+                        className={`flex items-center gap-1 text-sm transition-colors ${
+                          userDisliked ? 'text-red-600 font-semibold' : 'text-text-secondary hover:text-red-600'
                         }`}
                       >
                         👎 {comment.dislikes}
@@ -322,13 +322,13 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
                         <>
                           <button
                             onClick={() => startEdit(comment)}
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
                           >
                             {t('comments.edit')}
                           </button>
                           <button
                             onClick={() => handleDelete(comment.id)}
-                            className="text-sm text-red-600 hover:underline"
+                            className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
                           >
                             {t('comments.delete')}
                           </button>

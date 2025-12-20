@@ -190,32 +190,32 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)]">
-      <div className="w-1/3 border-r bg-white overflow-y-auto">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">{t('filters.title')}</h2>
+    <div className="flex h-[calc(100vh-80px)] bg-background">
+      <div className="w-1/3 border-r border-divider bg-white overflow-y-auto">
+        <div className="p-6 border-b border-divider bg-white">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-text-primary">{t('filters.title')}</h2>
             <button
               onClick={() => setRouletteModalOpen(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md font-semibold hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+              className="px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
             >
               <span className="text-lg">🎰</span>
               <span>{t('roulette.title')}</span>
             </button>
           </div>
           {useGooglePlaces && !basePoint && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              💡 {t('map.clickToSelectCenter')}
-            </p>
-          </div>
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+              <p className="text-sm text-blue-800">
+                💡 {t('map.clickToSelectCenter')}
+              </p>
+            </div>
           )}
           {useGooglePlaces && basePoint && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-800">
-              ✓ {t('map.basePoint')}：{basePoint.name || `(${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)})`}
-            </p>
-          </div>
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <p className="text-sm text-green-800">
+                ✓ {t('map.basePoint')}：{basePoint.name || `(${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)})`}
+              </p>
+            </div>
           )}
           <Filters 
             filters={filters} 
@@ -231,7 +231,7 @@ export default function HomePage() {
           error={error}
         />
       </div>
-      <div className="flex-1 relative">
+      <div className="flex-1 relative bg-background">
         <Map
           places={filteredPlaces}
           selectedPlace={selectedPlace}

@@ -98,17 +98,17 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
   };
 
   if (loading) {
-    return <div className="text-gray-600">{t('common.loading')}</div>;
+    return <div className="text-text-secondary">{t('common.loading')}</div>;
   }
 
   return (
     <div className="mt-4">
       <button
         onClick={handleToggleFavorite}
-        className={`px-4 py-2 rounded-md transition-colors ${
+        className={`px-4 py-2.5 rounded-xl font-medium transition-all shadow-sm hover:shadow-md ${
           favorited
             ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            : 'bg-white text-text-secondary border border-divider hover:border-primary-600 hover:text-primary-600'
         }`}
       >
         {favorited ? '❤️ ' + t('favorites.removeFromFavorites') : '🤍 ' + t('favorites.addToFavorites')}
@@ -117,13 +117,13 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
       {favorited && (
         <div className="mt-4">
           {note && !showNoteForm && (
-            <div className="p-3 bg-gray-50 rounded-lg mb-2">
-              <p className="text-sm text-gray-700">
+            <div className="p-4 bg-white border border-divider rounded-xl mb-2 shadow-sm">
+              <p className="text-sm text-text-primary">
                 <span className="font-semibold">{t('favorites.note')}:</span> {note}
               </p>
               <button
                 onClick={() => setShowNoteForm(true)}
-                className="text-sm text-blue-600 hover:underline mt-2"
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium mt-2 transition-colors"
               >
                 {t('favorites.editNote')}
               </button>
@@ -131,18 +131,18 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
           )}
 
           {showNoteForm && (
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-4 bg-white border border-divider rounded-xl shadow-sm">
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={t('favorites.addNote')}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 mb-2"
+                className="w-full border border-divider rounded-xl px-4 py-2.5 text-text-primary mb-3 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-colors"
                 rows={3}
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={handleSaveNote}
-                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
+                  className="px-4 py-2 bg-primary-600 text-white text-sm rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm"
                 >
                   {t('favorites.saveNote')}
                 </button>
@@ -151,7 +151,7 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
                     setShowNoteForm(false);
                     checkFavorite(); // Reset note from server
                   }}
-                  className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400"
+                  className="px-4 py-2 bg-white text-text-secondary border border-divider text-sm rounded-xl hover:bg-gray-50 transition-all font-medium"
                 >
                   {t('comments.cancel')}
                 </button>
@@ -162,7 +162,7 @@ export default function FavoriteButton({ placeId }: FavoriteButtonProps) {
           {!note && !showNoteForm && (
             <button
               onClick={() => setShowNoteForm(true)}
-              className="mt-2 text-sm text-blue-600 hover:underline"
+              className="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
             >
               {t('favorites.addNote')}
             </button>
