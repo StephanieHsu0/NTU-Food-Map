@@ -13,7 +13,7 @@ export default function PlaceCard({ place }: PlaceCardProps) {
 
   return (
     <div>
-      <h3 className="font-semibold text-lg mb-1">{name}</h3>
+      <h3 className="font-semibold text-lg mb-1 text-gray-900">{name}</h3>
       {locale === 'zh' && place.name_en && (
         <p className="text-sm text-gray-600 mb-2">{place.name_en}</p>
       )}
@@ -22,9 +22,9 @@ export default function PlaceCard({ place }: PlaceCardProps) {
           ⭐ {place.rating.toFixed(1)}
           <span className="text-gray-400 ml-1">({place.rating_count})</span>
         </span>
-        <span>{'$'.repeat(place.price_level)}</span>
+        <span className="text-gray-900">{'$'.repeat(place.price_level)}</span>
         {place.distance_m && (
-          <span>{(place.distance_m / 1000).toFixed(2)} km</span>
+          <span className="text-gray-700">{(place.distance_m / 1000).toFixed(2)} km</span>
         )}
         {place.score && (
           <span className="text-primary-600 font-semibold">

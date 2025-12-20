@@ -22,13 +22,13 @@ export default function ScoreBreakdown({ breakdown }: ScoreBreakdownProps) {
 
   return (
     <div className="bg-gray-50 rounded-lg p-4">
-      <h3 className="text-lg font-semibold mb-4">{t('scoreBreakdown.title')}</h3>
+      <h3 className="text-lg font-semibold mb-4 text-gray-900">{t('scoreBreakdown.title')}</h3>
       <div className="space-y-3">
         {components.map((component) => (
           <div key={component.key}>
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-700">{component.label}</span>
-              <span className="font-semibold">{component.value.toFixed(2)}</span>
+              <span className="font-semibold text-gray-900">{component.value.toFixed(2)}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div

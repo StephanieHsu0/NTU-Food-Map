@@ -50,12 +50,37 @@ async function createIndexes(db: Db) {
   try {
     const placesCollection = db.collection('places');
     
-    // Create indexes (idempotent - safe to call multiple times)
+    // Create indexes for places (idempotent - safe to call multiple times)
     await placesCollection.createIndex({ location: '2dsphere' }).catch(() => {});
     await placesCollection.createIndex({ rating: -1 }).catch(() => {});
     await placesCollection.createIndex({ price_level: 1 }).catch(() => {});
     await placesCollection.createIndex({ categories: 1 }).catch(() => {});
     await placesCollection.createIndex({ features: 1 }).catch(() => {});
+
+    // Create indexes for users (NextAuth)
+    const usersCollection = db.collection('users');
+    await usersCollection.createIndex({ email: 1 }).catch(() => {});
+    
+    // Create indexes for accounts (NextAuth)
+    const accountsCollection = db.collection('accounts');
+    await accountsCollection.createIndex({ provider: 1, providerAccountId: 1 }, { unique: true }).catch(() => {});
+    await accountsCollection.createIndex({ userId: 1 }).catch(() => {});
+    
+    // Create indexes for sessions (NextAuth)
+    const sessionsCollection = db.collection('sessions');
+    await sessionsCollection.createIndex({ sessionToken: 1 }, { unique: true }).catch(() => {});
+    await sessionsCollection.createIndex({ userId: 1 }).catch(() => {});
+
+    // Create indexes for comments
+    const commentsCollection = db.collection('comments');
+    await commentsCollection.createIndex({ place_id: 1 }).catch(() => {});
+    await commentsCollection.createIndex({ user_id: 1 }).catch(() => {});
+    await commentsCollection.createIndex({ created_at: -1 }).catch(() => {});
+
+    // Create indexes for favorites
+    const favoritesCollection = db.collection('favorites');
+    await favoritesCollection.createIndex({ user_id: 1, place_id: 1 }, { unique: true }).catch(() => {});
+    await favoritesCollection.createIndex({ user_id: 1 }).catch(() => {});
   } catch (error) {
     // Indexes might already exist, ignore errors
     console.error('Error creating indexes:', error);
