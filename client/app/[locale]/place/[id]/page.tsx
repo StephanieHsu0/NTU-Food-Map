@@ -87,8 +87,33 @@ export default function PlaceDetailPage() {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-900">{t('common.loading')}</div>
+        <div className="max-w-4xl mx-auto px-4 py-8 bg-background min-h-screen">
+          <div className="h-4 w-16 bg-gray-200 rounded mb-4 animate-pulse" />
+          <div className="bg-white rounded-xl shadow-md border border-divider overflow-hidden p-6 lg:p-8 animate-pulse space-y-6">
+            <div className="h-8 w-2/3 bg-gray-200 rounded" />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-4 bg-gray-200 rounded w-24" />
+              <div className="h-4 bg-gray-200 rounded w-20" />
+              <div className="h-4 bg-gray-200 rounded w-28" />
+              <div className="h-4 bg-gray-200 rounded w-24" />
+            </div>
+
+            <div className="space-y-3 border-t border-divider pt-4">
+              <div className="h-5 bg-gray-200 rounded w-32" />
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+            </div>
+
+            <div className="space-y-3 border-t border-divider pt-4">
+              <div className="h-5 bg-gray-200 rounded w-32" />
+              <div className="flex gap-2 flex-wrap">
+                <div className="h-7 bg-gray-200 rounded-full w-20" />
+                <div className="h-7 bg-gray-200 rounded-full w-16" />
+                <div className="h-7 bg-gray-200 rounded-full w-24" />
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
@@ -98,20 +123,20 @@ export default function PlaceDetailPage() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <button
             onClick={() => router.back()}
-            className="mb-4 text-primary-600 hover:text-primary-700"
+            className="mb-4 text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
             ← {t('common.back')}
           </button>
-          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="bg-white rounded-xl shadow-md border border-divider p-6 text-center">
             <div className="text-red-600 font-semibold text-lg mb-2">
               {t('common.error')}
             </div>
             {error && (
-              <div className="text-sm text-gray-600 mb-4">{error}</div>
+              <div className="text-sm text-text-secondary mb-4">{error}</div>
             )}
             <button
               onClick={() => router.back()}
-              className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+              className="px-4 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm"
             >
               {t('place.backToMap')}
             </button>
@@ -141,73 +166,73 @@ export default function PlaceDetailPage() {
     }
 
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 bg-background min-h-screen">
         <button
           onClick={() => router.back()}
-          className="mb-4 text-primary-600 hover:text-primary-700"
+          className="mb-6 text-primary-600 hover:text-primary-700 font-medium transition-colors"
         >
           ← {t('common.back')}
         </button>
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-3xl font-bold mb-4 text-gray-900">{name}</h1>
+        <div className="bg-white rounded-xl shadow-md border border-divider overflow-hidden">
+          <div className="p-6 lg:p-8">
+            <h1 className="text-3xl font-bold mb-6 text-text-primary">{name}</h1>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <span className="text-gray-600">{t('place.rating')}: </span>
+                <span className="text-text-secondary">{t('place.rating')}: </span>
                 {place.rating && place.rating > 0 ? (
-                  <span className="font-semibold text-gray-900">{place.rating.toFixed(1)}</span>
+                  <span className="font-semibold text-text-primary">{place.rating.toFixed(1)}</span>
                 ) : (
-                  <span className="text-gray-400">{t('place.notProvided')}</span>
+                  <span className="text-text-secondary">{t('place.notProvided')}</span>
                 )}
                 {place.rating_count > 0 && (
-                  <span className="text-gray-500 text-sm"> ({place.rating_count})</span>
+                  <span className="text-text-secondary text-sm"> ({place.rating_count})</span>
                 )}
               </div>
               <div>
-                <span className="text-gray-600">{t('place.price')}: </span>
+                <span className="text-text-secondary">{t('place.price')}: </span>
                 {place.price_level && place.price_level > 0 ? (
-                  <span className="font-semibold text-gray-900">{'$'.repeat(place.price_level)}</span>
+                  <span className="font-semibold text-text-primary">{'$'.repeat(place.price_level)}</span>
                 ) : (
-                  <span className="text-gray-400">{t('place.notProvided')}</span>
+                  <span className="text-text-secondary">{t('place.notProvided')}</span>
                 )}
               </div>
               <div>
-                <span className="text-gray-600">{t('place.distance')}: </span>
+                <span className="text-text-secondary">{t('place.distance')}: </span>
                 {place.distance_m !== undefined && place.distance_m > 0 ? (
-                  <span className="font-semibold text-gray-900">{(place.distance_m / 1000).toFixed(2)} km</span>
+                  <span className="font-semibold text-text-primary">{(place.distance_m / 1000).toFixed(2)} km</span>
                 ) : (
-                  <span className="text-gray-400">{t('place.notProvided')}</span>
+                  <span className="text-text-secondary">{t('place.notProvided')}</span>
                 )}
               </div>
               {place.score && (
                 <div>
-                  <span className="text-gray-600">{t('place.recommendationScore')}: </span>
-                  <span className="font-semibold text-gray-900">{place.score.toFixed(2)}</span>
+                  <span className="text-text-secondary">{t('place.recommendationScore')}: </span>
+                  <span className="font-semibold text-primary-600">{place.score.toFixed(2)}</span>
                 </div>
               )}
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.address')}</h2>
-              <p className="text-gray-700">{address}</p>
+            <div className="mb-6 pb-6 border-b border-divider">
+              <h2 className="text-xl font-semibold mb-2 text-text-primary">{t('place.address')}</h2>
+              <p className="text-text-secondary">{address}</p>
               {place.phone && (
-                <p className="text-gray-700 mt-2">
-                  <span className="font-semibold text-gray-900">{t('place.phone')}: </span>
-                  <span className="text-gray-700">{place.phone}</span>
+                <p className="text-text-secondary mt-2">
+                  <span className="font-semibold text-text-primary">{t('place.phone')}: </span>
+                  <span className="text-text-secondary">{place.phone}</span>
                 </p>
               )}
             </div>
 
             {place.categories.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.categories')}</h2>
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-3 text-text-primary">{t('place.categories')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {place.categories.map((cat, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm"
+                      className="px-3 py-1.5 bg-primary-50 text-primary-700 border border-primary-200 rounded-full text-sm font-medium"
                     >
                       {cat}
                     </span>
@@ -217,13 +242,13 @@ export default function PlaceDetailPage() {
             )}
 
             {place.features.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.features')}</h2>
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-3 text-text-primary">{t('place.features')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {place.features.map((feat, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                      className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm font-medium"
                     >
                       {feat}
                     </span>
@@ -239,9 +264,9 @@ export default function PlaceDetailPage() {
             )}
 
             {place.open_hours && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.hours')}</h2>
-                <div className="space-y-1">
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-3 text-text-primary">{t('place.hours')}</h2>
+                <div className="space-y-2">
                   {Object.entries(place.open_hours).map(([day, hours]) => {
                     // Translate day names from Chinese to English if needed
                     const dayTranslations: { [key: string]: { zh: string; en: string } } = {
@@ -265,8 +290,8 @@ export default function PlaceDetailPage() {
                       : day;
                     return (
                       <div key={day} className="flex justify-between">
-                        <span className="font-medium text-gray-900">{translatedDay}:</span>
-                        <span className="text-gray-700">{hours.join(', ')}</span>
+                        <span className="font-medium text-text-primary">{translatedDay}:</span>
+                        <span className="text-text-secondary">{hours.join(', ')}</span>
                       </div>
                     );
                   })}
@@ -275,15 +300,15 @@ export default function PlaceDetailPage() {
             )}
 
             {place.photos && place.photos.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.photos')}</h2>
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-3 text-text-primary">{t('place.photos')}</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {place.photos.slice(0, 6).map((photo, idx) => (
                     <img
                       key={idx}
                       src={photo}
                       alt={`${name} - Photo ${idx + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-48 object-cover rounded-xl shadow-sm"
                     />
                   ))}
                 </div>
@@ -291,13 +316,13 @@ export default function PlaceDetailPage() {
             )}
 
             {place.website && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.website')}</h2>
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-2 text-text-primary">{t('place.website')}</h2>
                 <a
                   href={place.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-700 underline"
+                  className="text-primary-600 hover:text-primary-700 underline font-medium transition-colors"
                 >
                   {place.website}
                 </a>
@@ -305,17 +330,17 @@ export default function PlaceDetailPage() {
             )}
 
             {place.reviews && place.reviews.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2 text-gray-900">{t('place.reviews')}</h2>
+              <div className="mb-6 pb-6 border-b border-divider">
+                <h2 className="text-xl font-semibold mb-4 text-text-primary">{t('place.reviews')}</h2>
                 <div className="space-y-4">
                   {place.reviews.map((review, idx) => (
-                    <div key={idx} className="border-b border-gray-200 pb-4 last:border-b-0">
+                    <div key={idx} className="border-b border-divider pb-4 last:border-b-0">
                       <div className="flex items-start gap-3 mb-2">
                         {review.profile_photo_url && (
                           <img
                             src={review.profile_photo_url}
                             alt={review.author_name}
-                            className="w-10 h-10 rounded-full"
+                            className="w-10 h-10 rounded-full border border-divider"
                           />
                         )}
                         <div className="flex-1">
@@ -325,23 +350,23 @@ export default function PlaceDetailPage() {
                                 href={review.author_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-semibold text-gray-900 hover:text-primary-600"
+                                className="font-semibold text-text-primary hover:text-primary-600 transition-colors"
                               >
                                 {review.author_name}
                               </a>
                             ) : (
-                              <span className="font-semibold text-gray-900">{review.author_name}</span>
+                              <span className="font-semibold text-text-primary">{review.author_name}</span>
                             )}
                             <span className="text-yellow-500">⭐ {review.rating}</span>
-                            <span className="text-gray-500 text-sm">{review.relative_time_description}</span>
+                            <span className="text-text-secondary text-sm">{review.relative_time_description}</span>
                           </div>
-                          <p className="text-gray-700 text-sm leading-relaxed">{review.text}</p>
+                          <p className="text-text-primary text-sm leading-relaxed">{review.text}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-text-secondary mt-3">
                   {t('place.reviewsSource')}
                 </p>
               </div>

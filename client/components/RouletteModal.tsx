@@ -69,19 +69,19 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
     <div className="fixed inset-0 z-50 overflow-y-auto" onClick={onClose}>
       <div className="flex items-center justify-center min-h-screen px-4 py-8">
         {/* Background overlay */}
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+        <div className="fixed inset-0 transition-opacity bg-black bg-opacity-50" onClick={onClose}></div>
 
         {/* Modal panel */}
         <div
-          className="inline-block w-full max-w-3xl text-left align-middle transition-all transform bg-white shadow-xl rounded-lg overflow-hidden"
+          className="inline-block w-full max-w-3xl text-left align-middle transition-all transform bg-white shadow-xl rounded-xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b bg-primary-600 text-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-divider bg-primary-600 text-white">
             <h2 className="text-2xl font-bold">{t('roulette.title')}</h2>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors text-2xl font-bold"
+              className="text-white hover:text-gray-200 transition-colors text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:bg-opacity-10"
             >
               ×
             </button>
@@ -96,23 +96,23 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
               <p className="text-gray-600 mb-6 lg:mb-8 text-sm lg:text-base">{t('roulette.subtitle')}</p>
 
               {/* Available places count */}
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                 <div className="text-sm font-medium text-blue-900 mb-1">
                   {t('roulette.availablePlaces')}
                 </div>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary-600">
                   {availableCount} {t('roulette.places')}
                 </div>
               </div>
 
               {availableCount === 0 && (
-                <div className="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl">
                   {t('roulette.noPlacesAvailable')}
                 </div>
               )}
 
               {error && (
-                <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
                   {error}
                 </div>
               )}
@@ -154,7 +154,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
                 <button
                   onClick={handleSpin}
                   disabled={spinning || availableCount === 0}
-                  className="px-8 py-4 bg-primary-600 text-white rounded-lg font-semibold text-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 min-w-[200px]"
+                  className="px-8 py-4 bg-primary-600 text-white rounded-xl font-semibold text-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 min-w-[200px]"
                   type="button"
                 >
                   {spinning ? (
@@ -176,32 +176,32 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
 
               {/* Result Display */}
               {result && (
-                <div className="mt-8 w-full max-w-2xl bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+                <div className="mt-8 w-full max-w-2xl bg-white rounded-xl shadow-md border border-divider p-6">
                   {(() => {
                     const primaryName = locale === 'zh' ? result.name_zh : result.name_en;
                     const secondaryName = locale === 'zh' ? result.name_en : result.name_zh;
                     const displayName = primaryName || secondaryName || t('place.unknownPlace');
 
                     return (
-                      <div className="flex items-start justify-between gap-4 border-b pb-4">
+                      <div className="flex items-start justify-between gap-4 border-b border-divider pb-4">
                         <div className="flex items-start gap-3">
                           <div className="h-11 w-11 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xl">
                             🎉
                           </div>
                           <div className="text-left">
-                            <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                            <p className="text-xs uppercase tracking-wide text-text-secondary mb-1">
                               {t('roulette.selectedPlace')}
                             </p>
-                            <h3 className="text-xl font-bold text-gray-900 leading-tight">{displayName}</h3>
+                            <h3 className="text-xl font-bold text-text-primary leading-tight">{displayName}</h3>
                             {secondaryName && (
-                              <p className="text-sm text-gray-500 mt-1">{secondaryName}</p>
+                              <p className="text-sm text-text-secondary mt-1">{secondaryName}</p>
                             )}
                           </div>
                         </div>
                         <button
                           onClick={handleSpin}
                           disabled={spinning || availableCount === 0}
-                          className="px-3 py-2 text-sm bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                          className="px-3 py-2 text-sm bg-primary-50 text-primary-700 rounded-xl hover:bg-primary-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-primary-200"
                           type="button"
                         >
                           {t('roulette.tryAgain')}
@@ -210,12 +210,12 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
                     );
                   })()}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-gray-800">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-text-primary">
                     <div className="flex items-center gap-2">
                       <span className="text-yellow-500">⭐</span>
                       <span className="font-semibold">{t('place.rating')}:</span>
                       <span className="ml-1 font-bold">{result.rating.toFixed(1)}</span>
-                      <span className="text-gray-500 ml-1">({result.rating_count})</span>
+                      <span className="text-text-secondary ml-1">({result.rating_count})</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
 
                     {result.distance_m && (
                       <div className="flex items-center gap-2">
-                        <span className="text-blue-500">📍</span>
+                        <span className="text-primary-600">📍</span>
                         <span className="font-semibold">{t('place.distance')}:</span>
                         <span className="ml-1">{(result.distance_m / 1000).toFixed(2)} km</span>
                       </div>
@@ -236,7 +236,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
                       <div className="flex items-center gap-2 sm:col-span-2">
                         <span className="text-purple-600">🏷️</span>
                         <span className="font-semibold">{t('place.categories')}:</span>
-                        <span className="ml-1 text-gray-700">{result.categories.join(' / ')}</span>
+                        <span className="ml-1 text-text-secondary">{result.categories.join(' / ')}</span>
                       </div>
                     )}
                   </div>
@@ -249,7 +249,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
                           onClose();
                         }
                       }}
-                      className="px-5 py-2.5 bg-primary-600 text-white rounded-lg shadow hover:bg-primary-700 transition"
+                      className="px-5 py-2.5 bg-primary-600 text-white rounded-xl shadow-sm hover:bg-primary-700 transition-all font-medium"
                       type="button"
                     >
                       {t('place.details')}
@@ -257,7 +257,7 @@ export default function RouletteModal({ isOpen, onClose, filters, filteredPlaces
                     <button
                       onClick={handleSpin}
                       disabled={spinning || availableCount === 0}
-                      className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="px-5 py-2.5 bg-white text-text-secondary border border-divider rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
                       type="button"
                     >
                       {t('roulette.tryAgain')}

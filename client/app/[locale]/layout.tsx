@@ -30,11 +30,11 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider messages={messages}>
       <Providers>
-        <div className="min-h-screen bg-gray-50">
-          <header className="bg-white shadow-sm border-b">
+        <div className="min-h-screen bg-background">
+          <header className="bg-white shadow-sm border-b border-divider">
             <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4 w-full">
               <div className="flex items-center gap-6">
-                <Link href={`/${locale}`} className="text-2xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+                <Link href={`/${locale}`} className="text-2xl font-bold text-text-primary hover:text-primary-600 transition-colors">
                   NTU Food Map
                 </Link>
                 

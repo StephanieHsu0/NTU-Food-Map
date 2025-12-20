@@ -2,11 +2,14 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
 
 export default function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
+   const [open, setOpen] = useState(false);
+   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const switchLocale = (newLocale: string) => {
     const segments = pathname.split('/');
@@ -14,28 +17,57 @@ export default function LanguageSwitcher({ currentLocale }: { currentLocale: str
     router.push(segments.join('/'));
   };
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const label = currentLocale === 'zh' ? '中文' : 'English';
+
   return (
-    <div className="flex gap-2">
+    <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => switchLocale('zh')}
-        className={`px-3 py-1 rounded ${
-          currentLocale === 'zh'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        }`}
+        onClick={() => setOpen((prev) => !prev)}
+        className="px-3 py-2 rounded-xl text-sm font-medium transition-all bg-white border border-divider text-text-primary shadow-sm hover:shadow-md flex items-center gap-2"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
-        中文
+        <span aria-hidden>🌐</span>
+        <span>{label}</span>
+        <span className="text-xs text-text-secondary">▾</span>
       </button>
-      <button
-        onClick={() => switchLocale('en')}
-        className={`px-3 py-1 rounded ${
-          currentLocale === 'en'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        }`}
-      >
-        English
-      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-40 rounded-xl border border-divider bg-white shadow-md z-50 py-2">
+          {['zh', 'en'].map((lng) => {
+            const isActive = lng === currentLocale;
+            const text = lng === 'zh' ? '中文' : 'English';
+            return (
+              <button
+                key={lng}
+                onClick={() => {
+                  setOpen(false);
+                  switchLocale(lng);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-primary-600 text-white'
+                    : 'text-text-secondary hover:bg-gray-50'
+                }`}
+                role="option"
+                aria-selected={isActive}
+              >
+                {text}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

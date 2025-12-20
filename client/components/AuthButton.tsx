@@ -4,43 +4,84 @@ import { useSession, signOut } from 'next-auth/react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 
 export default function AuthButton() {
   const { data: session, status } = useSession();
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   if (status === 'loading') {
     return (
-      <div className="px-4 py-2 bg-gray-200 text-gray-600 rounded-md">
+      <div className="px-4 py-2 bg-white text-text-secondary rounded-xl border border-divider">
         {t('auth.loading')}
       </div>
     );
   }
 
   if (session?.user) {
+    const initial =
+      session.user.name?.charAt(0).toUpperCase() ||
+      session.user.email?.charAt(0).toUpperCase() ||
+      '?';
+
     return (
-      <div className="flex items-center gap-3">
-        {session.user.image && (
-          <Image
-            src={session.user.image}
-            alt={session.user.name || 'User'}
-            width={32}
-            height={32}
-            className="rounded-full"
-          />
-        )}
-        <span className="text-sm text-gray-700">{session.user.name}</span>
+      <div className="relative" ref={dropdownRef}>
         <button
-          onClick={async () => {
-            await signOut({ redirect: false });
-            window.location.reload();
-          }}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+          onClick={() => setOpen((prev) => !prev)}
+          className="w-9 h-9 rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all"
         >
-          {t('auth.signOut')}
+          {session.user.image ? (
+            <Image
+              src={session.user.image}
+              alt={session.user.name || 'User'}
+              width={36}
+              height={36}
+              className="rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-sm font-semibold text-text-primary">{initial}</span>
+          )}
         </button>
+
+        {open && (
+          <div className="absolute right-0 mt-2 w-56 rounded-xl border border-divider bg-white shadow-md z-50">
+            <div className="px-4 py-3">
+              <p className="text-sm font-semibold text-text-primary">
+                {session.user.name || t('auth.signedIn')}
+              </p>
+              {session.user.email && (
+                <p className="text-xs text-text-secondary mt-1 truncate">
+                  {session.user.email}
+                </p>
+              )}
+            </div>
+            <div className="h-px bg-divider" />
+            <button
+              onClick={async () => {
+                setOpen(false);
+                await signOut({ redirect: false });
+                window.location.reload();
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-gray-50 transition-colors"
+            >
+              {t('auth.signOut')}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -50,7 +91,7 @@ export default function AuthButton() {
       onClick={() => {
         router.push(`/${locale}/auth/signin`);
       }}
-      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+      className="px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md"
     >
       {t('auth.signIn')}
     </button>
