@@ -18,7 +18,8 @@
     "notFoundDescription": "The page you are looking for does not exist",
     "backToHome": "Back to Home",
     "googleMapsTimeout": "Google Maps API loading timeout. Please refresh the page.",
-    "googleMapsLoadError": "Failed to load Google Maps API"
+    "googleMapsLoadError": "Failed to load Google Maps API",
+    "cancel": "Cancel"
   },
   "map": {
     "title": "NTU Food Map",
@@ -200,6 +201,71 @@
     "saveNote": "Save Note",
     "noFavorites": "No favorites yet",
     "favorited": "Favorited"
+  },
+  "profile": {
+    "title": "Profile",
+    "editButton": "Edit Profile",
+    "cancelEdit": "Cancel",
+    "editTitle": "Edit Profile",
+    "stats": {
+      "comments": "Comments",
+      "favorites": "Favorites"
+    },
+    "tabs": {
+      "comments": "My Comments",
+      "favorites": "My Favorites"
+    },
+    "error": {
+      "loading": "Failed to load profile"
+    },
+    "edit": {
+      "name": "Name",
+      "email": "Email",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be 50 characters or less",
+      "nameLengthWarning": "Name is getting long",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Invalid email format",
+      "saveFailed": "Failed to save profile",
+      "emailOAuthHint": "Email cannot be changed for OAuth accounts"
+    },
+    "avatar": {
+      "selectFile": "Select Image",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "uploadFailed": "Upload failed",
+      "invalidType": "Invalid file type. Only images are allowed.",
+      "fileTooLarge": "File size exceeds 5MB limit.",
+      "hint": "Maximum file size: 5MB. Supported formats: JPEG, PNG, WebP, GIF",
+      "alt": "User Avatar",
+      "placeholder": "?",
+      "uploadFile": "Upload File",
+      "pasteUrl": "Paste URL",
+      "urlPlaceholder": "Enter image URL (e.g., https://example.com/image.jpg)",
+      "urlHint": "Paste an image URL from the web",
+      "applyUrl": "Apply URL",
+      "invalidUrl": "Invalid URL format",
+      "urlRequired": "Please enter an image URL",
+      "urlMustStartWithHttp": "URL must start with http:// or https://",
+      "imageLoadFailed": "Unable to load image from this URL. Please check if the URL is correct and the image is accessible.",
+      "invalidImageUrl": "Unable to load image from this URL",
+      "preview": "Preview"
+    },
+    "comments": {
+      "noComments": "You haven't commented on any places yet.",
+      "edited": "Edited",
+      "loadMore": "Load More",
+      "unknownPlace": "Unknown Place"
+    },
+    "favorites": {
+      "noFavorites": "You haven't favorited any places yet.",
+      "note": "Note",
+      "addedOn": "Added on",
+      "loadingPlace": "Loading place information"
+    }
   }
 }
 

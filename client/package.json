@@ -11,6 +11,7 @@
   "dependencies": {
     "@auth/core": "^0.41.0",
     "@react-google-maps/api": "^2.20.7",
+    "@vercel/blob": "^2.0.0",
     "dotenv": "^17.2.3",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",

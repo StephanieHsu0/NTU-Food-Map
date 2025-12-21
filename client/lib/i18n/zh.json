@@ -18,7 +18,8 @@
     "notFoundDescription": "您要尋找的頁面不存在",
     "backToHome": "返回首頁",
     "googleMapsTimeout": "Google Maps API 載入超時。請重新整理頁面。",
-    "googleMapsLoadError": "無法載入 Google Maps API"
+    "googleMapsLoadError": "無法載入 Google Maps API",
+    "cancel": "取消"
   },
   "map": {
     "title": "台大美食地圖",
@@ -200,6 +201,71 @@
     "saveNote": "儲存備註",
     "noFavorites": "尚無收藏",
     "favorited": "已收藏"
+  },
+  "profile": {
+    "title": "個人資料",
+    "editButton": "編輯資料",
+    "cancelEdit": "取消",
+    "editTitle": "編輯個人資料",
+    "stats": {
+      "comments": "留言",
+      "favorites": "收藏"
+    },
+    "tabs": {
+      "comments": "我的留言",
+      "favorites": "我的收藏"
+    },
+    "error": {
+      "loading": "載入個人資料失敗"
+    },
+    "edit": {
+      "name": "姓名",
+      "email": "電子郵件",
+      "save": "儲存",
+      "saving": "儲存中...",
+      "cancel": "取消",
+      "nameRequired": "姓名為必填",
+      "nameTooLong": "姓名長度不能超過 50 個字元",
+      "nameLengthWarning": "姓名已接近長度限制",
+      "emailRequired": "電子郵件為必填",
+      "invalidEmail": "電子郵件格式錯誤",
+      "saveFailed": "儲存失敗",
+      "emailOAuthHint": "OAuth 帳號的電子郵件無法修改"
+    },
+    "avatar": {
+      "selectFile": "選擇圖片",
+      "upload": "上傳",
+      "uploading": "上傳中...",
+      "uploadFailed": "上傳失敗",
+      "invalidType": "檔案類型錯誤，僅支援圖片格式。",
+      "fileTooLarge": "檔案大小超過 5MB 限制。",
+      "hint": "最大檔案大小：5MB。支援格式：JPEG、PNG、WebP、GIF",
+      "alt": "使用者頭像",
+      "placeholder": "？",
+      "uploadFile": "上傳檔案",
+      "pasteUrl": "貼上網址",
+      "urlPlaceholder": "輸入圖片網址（例如：https://example.com/image.jpg）",
+      "urlHint": "貼上網路上的圖片網址",
+      "applyUrl": "套用網址",
+      "invalidUrl": "網址格式錯誤",
+      "urlRequired": "請輸入圖片網址",
+      "urlMustStartWithHttp": "網址必須以 http:// 或 https:// 開頭",
+      "imageLoadFailed": "無法從此網址載入圖片。請確認網址是否正確且圖片可正常存取。",
+      "invalidImageUrl": "無法從此網址載入圖片",
+      "preview": "預覽"
+    },
+    "comments": {
+      "noComments": "您尚未對任何店家留言。",
+      "edited": "已編輯",
+      "loadMore": "載入更多",
+      "unknownPlace": "未知店家"
+    },
+    "favorites": {
+      "noFavorites": "您尚未收藏任何店家。",
+      "note": "備註",
+      "addedOn": "加入時間",
+      "loadingPlace": "載入店家資訊"
+    }
   }
 }
 
