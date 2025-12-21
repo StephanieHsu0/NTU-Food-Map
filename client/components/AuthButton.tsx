@@ -59,16 +59,26 @@ export default function AuthButton() {
 
         {open && (
           <div className="absolute right-0 mt-2 w-56 rounded-xl border border-divider bg-white shadow-md z-50">
-            <div className="px-4 py-3">
-              <p className="text-sm font-semibold text-text-primary">
+            <div className="px-4 py-3 min-w-0">
+              <p className="text-sm font-semibold text-text-primary break-words overflow-wrap-anywhere">
                 {session.user.name || t('auth.signedIn')}
               </p>
               {session.user.email && (
-                <p className="text-xs text-text-secondary mt-1 truncate">
+                <p className="text-xs text-text-secondary mt-1 break-words overflow-wrap-anywhere">
                   {session.user.email}
                 </p>
               )}
             </div>
+            <div className="h-px bg-divider" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push(`/${locale}/profile`);
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-gray-50 transition-colors"
+            >
+              {t('profile.title')}
+            </button>
             <div className="h-px bg-divider" />
             <button
               onClick={async () => {

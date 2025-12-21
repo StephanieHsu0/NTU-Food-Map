@@ -286,7 +286,7 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
                   )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-text-primary">{comment.user_name}</span>
+                      <span className="font-semibold text-text-primary break-words overflow-wrap-anywhere">{comment.user_name}</span>
                       {comment.rating && (
                         <span className="text-yellow-500">⭐ {comment.rating}</span>
                       )}

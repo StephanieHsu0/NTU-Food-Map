@@ -178,6 +178,14 @@ export default function Map({
       return;
     }
 
+    // Only update if the selected place is different from current info window
+    // This prevents unnecessary updates when marker is clicked directly
+    if (infoWindowPlace?.id === selectedPlace.id) {
+      return;
+    }
+
+    console.log('🔄 selectedPlace changed, updating info window:', selectedPlace.name_zh || selectedPlace.name_en);
+    
     // Pan to the selected place
     const placePosition = { lat: selectedPlace.lat, lng: selectedPlace.lng };
     mapRef.current.panTo(placePosition);
@@ -187,7 +195,7 @@ export default function Map({
     
     // Show info window for the selected place
     setInfoWindowPlace(selectedPlace);
-  }, [selectedPlace, isLoaded]);
+  }, [selectedPlace, isLoaded, infoWindowPlace]);
 
   // Update basePoint marker (點A) - this is the search center
   useEffect(() => {
@@ -388,7 +396,22 @@ export default function Map({
   };
 
   const handleMarkerClick = (place: Place) => {
+    console.log('📍 Marker clicked:', place);
+    // Ensure map is loaded before showing info window
+    if (!isLoaded || !mapRef.current) {
+      console.warn('⚠️ Map not loaded yet, waiting...');
+      // Wait a bit and try again
+      setTimeout(() => {
+        if (mapRef.current) {
+          console.log('✅ Map loaded, showing info window');
+          setInfoWindowPlace(place);
+          onPlaceSelect(place);
+        }
+      }, 100);
+      return;
+    }
     // Show info window and select place
+    console.log('✅ Showing info window for place:', place.name_zh || place.name_en);
     setInfoWindowPlace(place);
     onPlaceSelect(place);
   };
@@ -524,10 +547,13 @@ export default function Map({
             );
           })}
 
-          {infoWindowPlace && (
+          {infoWindowPlace && isLoaded && typeof window !== 'undefined' && window.google && (
             <InfoWindow
               position={{ lat: infoWindowPlace.lat, lng: infoWindowPlace.lng }}
               onCloseClick={handleInfoWindowClose}
+              options={{
+                pixelOffset: new window.google.maps.Size(0, -40),
+              }}
             >
               <div className="p-2 min-w-[200px]">
                 <h3 className="font-semibold text-sm mb-1 text-gray-900">{infoWindowPlace.name_zh}</h3>

@@ -3,6 +3,8 @@ import Google from 'next-auth/providers/google';
 import Line from 'next-auth/providers/line';
 import type { Adapter } from 'next-auth/adapters';
 import { MongoDBAdapter } from './mongodb-adapter';
+import { connectToDatabase } from './db';
+import { ObjectId } from 'mongodb';
 
 // NextAuth v5 automatically detects environment variables with AUTH_ prefix
 // For Google: AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
@@ -93,9 +95,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.id) {
         (session.user as any).id = token.id as string;
         (session.user as any).provider = token.provider as string;
+        
+        // Fetch latest user data from database to ensure image, name, email are up-to-date
+        try {
+          const db = await connectToDatabase();
+          const usersCollection = db.collection('users');
+          // Convert token.id (string) to ObjectId for MongoDB query
+          const user = await usersCollection.findOne({ _id: new ObjectId(token.id as string) });
+          
+          if (user) {
+            // Update session with latest user data from database
+            session.user.name = user.name || session.user.name;
+            session.user.email = user.email || session.user.email;
+            session.user.image = user.image || session.user.image || null;
+          }
+        } catch (error) {
+          // If database query fails, use existing session data
+          console.error('Error fetching user data in session callback:', error);
+        }
       }
       return session;
     },
