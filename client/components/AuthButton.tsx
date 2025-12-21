@@ -13,6 +13,7 @@ export default function AuthButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -23,6 +24,24 @@ export default function AuthButton() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Fetch user image from API to avoid storing in session token (prevents HTTP 431)
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data.image) {
+            setUserImage(data.image);
+          }
+        })
+        .catch(() => {
+          // Silently fail - will show initial instead
+        });
+    } else {
+      setUserImage(null);
+    }
+  }, [session]);
 
   if (status === 'loading') {
     return (
@@ -44,9 +63,9 @@ export default function AuthButton() {
           onClick={() => setOpen((prev) => !prev)}
           className="w-9 h-9 rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all"
         >
-          {session.user.image ? (
+          {userImage ? (
             <Image
-              src={session.user.image}
+              src={userImage}
               alt={session.user.name || 'User'}
               width={36}
               height={36}

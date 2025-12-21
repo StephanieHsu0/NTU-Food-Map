@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import Sidebar from '@/components/Sidebar';
@@ -36,22 +36,18 @@ export default function HomePage() {
     rating_min: 0,
     price_max: 4,
   });
+  
+  // Use ref to prevent multiple simultaneous loads
+  const loadingRef = useRef(false);
 
-  useEffect(() => {
-    // Load places when filters change
-    // For Google Places: wait for map to load, then use basePoint or default location
-    // For database: load immediately
-    if (!useGooglePlaces) {
-      // Database mode: load immediately
-      loadPlaces();
-    } else if (mapLoaded) {
-      // Google Places mode: wait for map to load, then load places
-      // Use basePoint if available, otherwise use default location from filters
-      loadPlaces();
+  const loadPlaces = useCallback(async () => {
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) {
+      console.log('⏸️ Load already in progress, skipping...');
+      return;
     }
-  }, [filters, useGooglePlaces, basePoint, mapLoaded]);
-
-  const loadPlaces = async () => {
+    
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -74,7 +70,6 @@ export default function HomePage() {
             }
           );
           console.log('Loaded places from Google Places:', data.length);
-          console.log('Places data:', data);
           setPlaces(data);
           setFilteredPlaces(data);
         } catch (placesError) {
@@ -100,8 +95,35 @@ export default function HomePage() {
       setFilteredPlaces([]);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, [filters, useGooglePlaces, basePoint, mapLoaded]);
+
+  useEffect(() => {
+    // Load places when filters change
+    // For Google Places: wait for map to load, then use basePoint or default location
+    // For database: load immediately
+    let isMounted = true;
+    
+    const loadData = async () => {
+      if (!isMounted) return;
+      
+      if (!useGooglePlaces) {
+        // Database mode: load immediately
+        await loadPlaces();
+      } else if (mapLoaded) {
+        // Google Places mode: wait for map to load, then load places
+        // Use basePoint if available, otherwise use default location from filters
+        await loadPlaces();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [loadPlaces, useGooglePlaces, mapLoaded]);
 
   const handleFilterChange = (newFilters: FilterParams) => {
     setFilters({ ...filters, ...newFilters });
@@ -164,8 +186,17 @@ export default function HomePage() {
   };
 
   const handleMapLoad = () => {
+    console.log('✅ Map loaded');
     setMapLoaded(true);
   };
+  
+  // Reset map loaded state when component unmounts or route changes
+  useEffect(() => {
+    return () => {
+      // Reset map loaded state when leaving the page
+      setMapLoaded(false);
+    };
+  }, []);
 
   const handleReset = () => {
     console.log('🔄 Reset button clicked');
