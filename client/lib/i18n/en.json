@@ -82,6 +82,8 @@
     "categories": "Categories",
     "features": "Features",
     "reviews": "Reviews",
+    "googleReviews": "Google Reviews",
+    "googleReviewsDescription": "The following reviews are from Google Maps, for reference only",
     "photos": "Photos",
     "recommendationScore": "Recommendation Score",
     "scoreBreakdown": "Score Breakdown",

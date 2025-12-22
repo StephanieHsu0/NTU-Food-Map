@@ -78,8 +78,16 @@ export default function Sidebar({ places, selectedPlace, onPlaceSelect, loading,
           <PlaceCard place={place} />
           <Link
             href={`/${locale}/place/${place.id}`}
+            prefetch={true}
             className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 transition-colors"
             onClick={(e) => e.stopPropagation()}
+            onMouseEnter={(e) => {
+              // Prefetch on hover for faster navigation
+              const link = e.currentTarget;
+              if (link.href) {
+                // Prefetch is handled automatically by Next.js Link with prefetch={true}
+              }
+            }}
           >
             {t('place.details')}
             <span>→</span>

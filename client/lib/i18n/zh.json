@@ -82,6 +82,8 @@
     "categories": "類別",
     "features": "特色",
     "reviews": "評論",
+    "googleReviews": "Google 評論",
+    "googleReviewsDescription": "以下為 Google Maps 上的評論，僅供參考",
     "photos": "照片",
     "recommendationScore": "推薦分數",
     "scoreBreakdown": "分數分解",

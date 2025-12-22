@@ -85,18 +85,29 @@ if (process.env.AUTH_LINE_ID && process.env.AUTH_LINE_SECRET) {
   console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID not set');
 }
 
-if (providers.length === 0) {
-  console.error('❌ No OAuth providers configured! Please set at least one provider credentials.');
-}
+// Check for required configuration
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
-if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+if (!authSecret) {
   console.error('❌ AUTH_SECRET not set. Please set AUTH_SECRET or NEXTAUTH_SECRET environment variable.');
   console.error('   Generate one with: openssl rand -base64 32');
+  console.error('   For local development, you can set it in client/.env.local');
+  console.error('   Using a temporary development secret. Please set AUTH_SECRET for production!');
 }
+
+if (providers.length === 0) {
+  console.warn('⚠️ No OAuth providers configured! Authentication will not work.');
+  console.warn('   Please set at least one provider credentials (AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET or AUTH_LINE_ID/AUTH_LINE_SECRET)');
+  console.warn('   The app will still run, but login features will be disabled.');
+}
+
+// Use provided secret or fallback to development secret
+// In production, this should always be set
+const secret = authSecret || 'dev-secret-please-set-auth-secret-in-production-' + Date.now();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true, // Required for Vercel deployment, or set AUTH_TRUST_HOST=true
-  // secret is auto-detected from AUTH_SECRET or NEXTAUTH_SECRET env var
+  secret: secret, // Explicitly set secret
   adapter: MongoDBAdapter() as Adapter,
   providers,
   session: {

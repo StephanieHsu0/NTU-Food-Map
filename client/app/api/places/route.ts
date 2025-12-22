@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Places API] Request received');
     const searchParams = request.nextUrl.searchParams;
     
     const filters: FilterParams = {
@@ -25,7 +26,10 @@ export async function GET(request: NextRequest) {
       open_now: searchParams.get('open_now') === 'true',
     };
 
+    console.log('[Places API] Filters:', filters);
+    console.log('[Places API] Connecting to database...');
     const db = await connectToDatabase();
+    console.log('[Places API] Database connected');
     const placesCollection = db.collection<PlaceDocument>('places');
 
     // Build MongoDB query
@@ -65,8 +69,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Execute query
+    console.log('[Places API] Query:', JSON.stringify(query));
+    console.log('[Places API] Executing query...');
     const cursor = placesCollection.find(query).limit(100);
     const documents = await cursor.toArray();
+    console.log(`[Places API] Found ${documents.length} documents`);
 
     // Transform MongoDB documents to Place objects
     const places: Place[] = documents.map((doc) => {

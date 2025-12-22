@@ -112,7 +112,10 @@ export default function UserFavoritesList({ userId }: UserFavoritesListProps) {
             key={favorite.id}
             className="border border-divider rounded-lg p-4 hover:shadow-md transition-shadow"
           >
-            <Link href={`/${locale}/place/${favorite.place_id}`}>
+            <Link 
+              href={`/${locale}/place/${favorite.place_id}`}
+              prefetch={true}
+            >
               <PlaceCard place={place} />
             </Link>
             {favorite.note && (

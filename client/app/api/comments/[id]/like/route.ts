@@ -52,7 +52,7 @@ export async function POST(
     let updateData: any = {};
 
     if (alreadyLiked) {
-      // Remove like
+      // Remove like - ensure likes doesn't go below 0
       updateData = {
         $pull: { user_likes: userId },
         $inc: { likes: -1 },
@@ -78,9 +78,21 @@ export async function POST(
       _id: new ObjectId(params.id),
     });
 
+    // Ensure likes and dislikes are not negative
+    const finalLikes = Math.max(0, updatedComment!.likes || 0);
+    const finalDislikes = Math.max(0, updatedComment!.dislikes || 0);
+    
+    // Update if negative values were corrected
+    if (finalLikes !== (updatedComment!.likes || 0) || finalDislikes !== (updatedComment!.dislikes || 0)) {
+      await commentsCollection.updateOne(
+        { _id: new ObjectId(params.id) },
+        { $set: { likes: finalLikes, dislikes: finalDislikes } }
+      );
+    }
+
     return NextResponse.json({
-      likes: updatedComment!.likes || 0,
-      dislikes: updatedComment!.dislikes || 0,
+      likes: finalLikes,
+      dislikes: finalDislikes,
       user_liked: !alreadyLiked,
       user_disliked: false,
     });

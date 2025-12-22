@@ -24,16 +24,32 @@ let cachedDb: Db | null = null;
 export async function connectToDatabase(): Promise<Db> {
   // In serverless environments, reuse the connection if available
   if (cachedDb) {
-    return cachedDb;
+    // Check if connection is still alive
+    try {
+      await cachedClient!.db().admin().ping();
+      return cachedDb;
+    } catch (error) {
+      // Connection is dead, reset cache
+      console.log('MongoDB connection lost, reconnecting...');
+      cachedClient = null;
+      cachedDb = null;
+    }
   }
 
   try {
-    const client = new MongoClient(MONGODB_URI);
+    console.log('Connecting to MongoDB...');
+    const client = new MongoClient(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      connectTimeoutMS: 10000, // 10 second timeout
+    });
     await client.connect();
     const db = client.db(DB_NAME);
     
     // Create indexes for better query performance (idempotent)
-    await createIndexes(db);
+    // Don't wait for indexes in production to speed up connection
+    createIndexes(db).catch(err => {
+      console.warn('Index creation warning (non-critical):', err.message);
+    });
     
     cachedClient = client;
     cachedDb = db;
@@ -42,6 +58,8 @@ export async function connectToDatabase(): Promise<Db> {
     return db;
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
+    cachedClient = null;
+    cachedDb = null;
     throw error;
   }
 }

@@ -187,3 +187,4 @@ AUTH_SECRET=your-generated-secret-key-here
 - [Google Maps Platform 文件](https://developers.google.com/maps/documentation)
 - [Next.js 環境變數文件](https://nextjs.org/docs/basic-features/environment-variables)
 
+

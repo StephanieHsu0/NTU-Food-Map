@@ -266,11 +266,14 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
       ) : (
         <div className="space-y-4">
           {comments.map((comment) => {
-            // Check if current user is the author by comparing user_id
-            const isAuthor = currentUserId && comment.user_id === currentUserId;
+            // Check if current user is the author by comparing user_id (both as strings)
+            const commentUserId = String(comment.user_id);
+            const currentUserIdStr = currentUserId ? String(currentUserId) : null;
+            const isAuthor = currentUserIdStr && commentUserId === currentUserIdStr;
+            
             // Check if current user liked/disliked
-            const userLiked = currentUserId && comment.user_likes.includes(currentUserId);
-            const userDisliked = currentUserId && comment.user_dislikes.includes(currentUserId);
+            const userLiked = currentUserIdStr && comment.user_likes.includes(currentUserIdStr);
+            const userDisliked = currentUserIdStr && comment.user_dislikes.includes(currentUserIdStr);
 
             return (
               <div key={comment.id} className="border-b border-divider pb-4 last:border-b-0">

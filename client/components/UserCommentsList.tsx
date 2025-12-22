@@ -103,7 +103,12 @@ export default function UserCommentsList({ userId }: UserCommentsListProps) {
           <div className="flex items-start justify-between mb-2 gap-2">
             <Link
               href={`/${locale}/place/${comment.place_id}`}
+              prefetch={true}
               className="text-lg font-semibold text-primary-600 hover:text-primary-700 transition-colors break-words overflow-wrap-anywhere flex-1 min-w-0"
+              onMouseEnter={() => {
+                // Prefetch on hover for faster navigation
+                router.prefetch(`/${locale}/place/${comment.place_id}`);
+              }}
             >
               {getPlaceName(comment)}
             </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
@@ -21,6 +21,7 @@ export default function PlaceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
 
@@ -46,8 +47,11 @@ export default function PlaceDetailPage() {
   }, [params.id, mapsLoaded, isGooglePlacesId]);
 
   const loadPlace = async (id: string) => {
-    setLoading(true);
-    setError(null);
+    startTransition(() => {
+      setLoading(true);
+      setError(null);
+    });
+    
     try {
       if (isGooglePlacesId) {
         // Wait for Google Maps API with retries
@@ -67,19 +71,29 @@ export default function PlaceDetailPage() {
         const defaultLng = 121.5395;
         const data = await getPlaceDetails(id, defaultLat, defaultLng);
         console.log('Loaded place data:', data);
-        setPlace(data);
+        
+        startTransition(() => {
+          setPlace(data);
+          setLoading(false);
+        });
       } else {
         // Use database API for regular IDs
         const data = await fetchPlace(id);
-        setPlace(data);
+        
+        startTransition(() => {
+          setPlace(data);
+          setLoading(false);
+        });
       }
     } catch (error) {
       console.error('Failed to load place:', error);
-      setPlace(null);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load place';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      
+      startTransition(() => {
+        setPlace(null);
+        setError(errorMessage);
+        setLoading(false);
+      });
     }
   };
 
@@ -166,7 +180,7 @@ export default function PlaceDetailPage() {
     }
 
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8 bg-background min-h-screen">
+      <div className={`max-w-4xl mx-auto px-4 py-8 bg-background min-h-screen transition-opacity duration-300 ${isPending ? 'opacity-70' : 'opacity-100'}`}>
         <button
           onClick={() => router.back()}
           className="mb-6 text-primary-600 hover:text-primary-700 font-medium transition-colors"
@@ -329,9 +343,26 @@ export default function PlaceDetailPage() {
               </div>
             )}
 
+            {/* Favorite Button */}
+            {place.id && <FavoriteButton placeId={place.id} />}
+
+            {/* User Comments Section - Interactive */}
+            {place.id && <CommentSection placeId={place.id} />}
+
+            {/* Google Reviews Section - Reference Only */}
             {place.reviews && place.reviews.length > 0 && (
-              <div className="mb-6 pb-6 border-b border-divider">
-                <h2 className="text-xl font-semibold mb-4 text-text-primary">{t('place.reviews')}</h2>
+              <div className="mt-8 mb-6 pb-6 border-t border-divider pt-6 bg-gray-50 rounded-lg p-4">
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-xl font-semibold text-text-primary">{t('place.googleReviews')}</h2>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+                      Google
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-secondary">
+                    {t('place.googleReviewsDescription')}
+                  </p>
+                </div>
                 <div className="space-y-4">
                   {place.reviews.map((review, idx) => (
                     <div key={idx} className="border-b border-divider pb-4 last:border-b-0">
@@ -371,12 +402,6 @@ export default function PlaceDetailPage() {
                 </p>
               </div>
             )}
-
-            {/* Favorite Button */}
-            {place.id && <FavoriteButton placeId={place.id} />}
-
-            {/* Comments Section */}
-            {place.id && <CommentSection placeId={place.id} />}
           </div>
         </div>
       </div>

@@ -86,9 +86,24 @@ export async function PUT(
     // Check if user is the author
     const usersCollection = db.collection('users');
     const user = await usersCollection.findOne({ email: session.user.email });
-    if (!user || comment.user_id.toString() !== user._id.toString()) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Ensure both IDs are compared as strings for consistency
+    const commentUserId = comment.user_id instanceof ObjectId 
+      ? comment.user_id.toString() 
+      : String(comment.user_id);
+    const currentUserId = user._id instanceof ObjectId 
+      ? user._id.toString() 
+      : String(user._id);
+    
+    if (commentUserId !== currentUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden: Only the comment author can edit this comment' },
         { status: 403 }
       );
     }
@@ -166,9 +181,24 @@ export async function DELETE(
     // Check if user is the author
     const usersCollection = db.collection('users');
     const user = await usersCollection.findOne({ email: session.user.email });
-    if (!user || comment.user_id.toString() !== user._id.toString()) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Ensure both IDs are compared as strings for consistency
+    const commentUserId = comment.user_id instanceof ObjectId 
+      ? comment.user_id.toString() 
+      : String(comment.user_id);
+    const currentUserId = user._id instanceof ObjectId 
+      ? user._id.toString() 
+      : String(user._id);
+    
+    if (commentUserId !== currentUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden: Only the comment author can edit this comment' },
         { status: 403 }
       );
     }
