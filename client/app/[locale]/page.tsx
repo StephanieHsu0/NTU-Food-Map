@@ -254,6 +254,9 @@ export default function HomePage() {
             filters={filters} 
             onChange={handleFilterChange}
             onReset={handleReset}
+            filteredPlaces={filteredPlaces}
+            selectedPlace={selectedPlace}
+            onPlaceSelect={handlePlaceSelect}
           />
         </div>
         {/* Places List */}

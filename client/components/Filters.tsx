@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { FilterParams } from '@/utils/types';
+import { FilterParams, Place } from '@/utils/types';
+import PlaceCard from './PlaceCard';
+import Link from 'next/link';
 
 interface FiltersProps {
   filters: FilterParams;
   onChange: (filters: FilterParams) => void;
   onReset?: () => void;
+  filteredPlaces?: Place[];
+  selectedPlace?: Place | null;
+  onPlaceSelect?: (place: Place) => void;
 }
 
-export default function Filters({ filters, onChange, onReset }: FiltersProps) {
+export default function Filters({ filters, onChange, onReset, filteredPlaces = [], selectedPlace, onPlaceSelect }: FiltersProps) {
   const t = useTranslations();
   const locale = useLocale();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
@@ -79,8 +84,30 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               onChange={(e) => handleChange('radius', parseInt(e.target.value))}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              {localFilters.radius || 2000} m
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="100"
+                max="5000"
+                step="100"
+                value={localFilters.radius || 2000}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (!isNaN(value) && value >= 100 && value <= 5000) {
+                    handleChange('radius', value);
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (isNaN(value) || value < 100) {
+                    handleChange('radius', 100);
+                  } else if (value > 5000) {
+                    handleChange('radius', 5000);
+                  }
+                }}
+                className="w-24 px-3 py-1.5 border border-divider rounded-lg text-sm text-text-primary bg-white focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
+              <span className="text-sm font-medium text-text-primary">m</span>
             </div>
           </div>
         </div>
@@ -99,13 +126,38 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               type="range"
               min="0"
               max="5"
-              step="0.5"
+              step="0.1"
               value={localFilters.rating_min || 0}
               onChange={(e) => handleChange('rating_min', parseFloat(e.target.value))}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              Rating ≥ {localFilters.rating_min || 0}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-text-primary">Rating ≥</span>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={localFilters.rating_min || 0}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value >= 0 && value <= 5) {
+                    handleChange('rating_min', Math.round(value * 10) / 10);
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (isNaN(value) || value < 0) {
+                    handleChange('rating_min', 0);
+                  } else if (value > 5) {
+                    handleChange('rating_min', 5);
+                  } else {
+                    // Ensure value is rounded to 1 decimal place
+                    handleChange('rating_min', Math.round(value * 10) / 10);
+                  }
+                }}
+                className="w-20 px-3 py-1.5 border border-divider rounded-lg text-sm text-text-primary bg-white focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
             </div>
           </div>
         </div>
@@ -191,6 +243,44 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
       >
         {t('common.reset')}
       </button>
+
+      {/* Filtered Places List */}
+      <div className="border-t border-divider pt-4 md:pt-6 mt-4 md:mt-6">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3 md:mb-4">
+          {t('filters.filteredResults')} ({filteredPlaces.length})
+        </h3>
+        {filteredPlaces.length > 0 ? (
+          <div className="space-y-3">
+            {filteredPlaces.map((place) => (
+              <div
+                key={place.id}
+                className={`p-3 md:p-4 rounded-xl border transition-all cursor-pointer ${
+                  selectedPlace?.id === place.id
+                    ? 'border-primary-600 bg-primary-50 shadow-sm'
+                    : 'border-divider bg-white hover:border-primary-600 hover:shadow-md'
+                }`}
+                onClick={() => onPlaceSelect?.(place)}
+              >
+                <PlaceCard place={place} />
+                {onPlaceSelect && (
+                  <Link
+                    href={`/${locale}/place/${place.id}`}
+                    className="mt-2 text-xs md:text-sm font-medium text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t('place.details')}
+                    <span>→</span>
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-text-secondary py-4 text-center">
+            {t('common.noResults')}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

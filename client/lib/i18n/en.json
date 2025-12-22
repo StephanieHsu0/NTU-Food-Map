@@ -60,6 +60,7 @@
     "features": "Features",
     "openNow": "Open now only",
     "internationalFriendly": "International friendly",
+    "filteredResults": "Filtered Results",
     "categoryNames": {
       "餐廳": "Restaurant",
       "咖啡廳": "Cafe",
