@@ -56,6 +56,7 @@ export default function Map({
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const circleRef = useRef<google.maps.Circle | null>(null);
+  const isAutoAdjustingRef = useRef(false);
 
   // Debug: Log places when they change
   useEffect(() => {
@@ -138,13 +139,16 @@ export default function Map({
     mapRef.current = null;
   }, []);
 
-  // Update map center when center prop changes
+  // Update map center when center prop changes (but don't auto-adjust if we have basePoint)
   useEffect(() => {
     if (mapRef.current && isLoaded) {
-      mapRef.current.setCenter({ lat: center[0], lng: center[1] });
-      mapRef.current.setZoom(16);
+      // Only auto-center if we don't have a basePoint (to avoid conflicts with radius-based auto-adjust)
+      if (!basePoint) {
+        mapRef.current.setCenter({ lat: center[0], lng: center[1] });
+        mapRef.current.setZoom(16);
+      }
     }
-  }, [center, isLoaded]);
+  }, [center, isLoaded, basePoint]);
 
   // When selectedPlace changes, pan to that place and show info window
   useEffect(() => {
@@ -158,11 +162,18 @@ export default function Map({
       return;
     }
 
+    // Don't adjust zoom if we're auto-adjusting for radius
+    if (isAutoAdjustingRef.current) {
+      // Just show info window without changing zoom
+      setInfoWindowPlace(selectedPlace);
+      return;
+    }
+
     // Pan to the selected place
     const placePosition = { lat: selectedPlace.lat, lng: selectedPlace.lng };
     mapRef.current.panTo(placePosition);
     
-    // Set zoom level to show the place clearly
+    // Set zoom level to show the place clearly (only if not auto-adjusting)
     mapRef.current.setZoom(17);
     
     // Show info window for the selected place
@@ -204,9 +215,11 @@ export default function Map({
     }
 
     // Create or update circle for search radius (only one circle should exist)
-    if (radius && radius > 0) {
+    // Use basePoint if available, otherwise use selectedLocation
+    const circleCenter = basePoint || selectedLocation;
+    if (radius && radius > 0 && circleCenter) {
       const circle = new window.google.maps.Circle({
-        center: { lat: selectedLocation.lat, lng: selectedLocation.lng },
+        center: { lat: circleCenter.lat, lng: circleCenter.lng },
         radius: radius,
         fillColor: '#4285F4',
         fillOpacity: 0.1,
@@ -285,7 +298,134 @@ export default function Map({
     setShowLocationInfo(true);
 
     locationMarkerRef.current = marker;
-  }, [selectedLocation, isLoaded, radius]);
+  }, [selectedLocation, basePoint, isLoaded, radius, t]);
+
+  // Auto-adjust map zoom and bounds when radius or basePoint changes
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current) {
+      return;
+    }
+
+    // Only auto-adjust if we have both basePoint and radius
+    if (!basePoint || !radius || radius <= 0) {
+      isAutoAdjustingRef.current = false;
+      return;
+    }
+
+    console.log('🔄 Auto-adjusting map view for radius:', radius, 'basePoint:', basePoint);
+    isAutoAdjustingRef.current = true;
+
+    // Use a small delay to avoid conflicts with other map operations
+    const timeoutId = setTimeout(() => {
+      if (!mapRef.current || !basePoint) {
+        isAutoAdjustingRef.current = false;
+        return;
+      }
+
+      // Calculate the bounds to fit the circle
+      // Convert radius from meters to degrees (approximate)
+      // At the equator, 1 degree ≈ 111,320 meters
+      // We need to account for latitude
+      const latRad = (basePoint.lat * Math.PI) / 180;
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = 111320 * Math.cos(latRad);
+
+      const latOffset = radius / metersPerDegreeLat;
+      const lngOffset = radius / metersPerDegreeLng;
+
+      const bounds = new window.google.maps.LatLngBounds(
+        new window.google.maps.LatLng(
+          basePoint.lat - latOffset,
+          basePoint.lng - lngOffset
+        ),
+        new window.google.maps.LatLng(
+          basePoint.lat + latOffset,
+          basePoint.lng + lngOffset
+        )
+      );
+
+      // Fit the map to show the entire circle with comfortable padding
+      // Calculate padding to make circle occupy approximately 88-92% of the viewport
+      const mapDiv = mapRef.current.getDiv();
+      const viewportWidth = mapDiv ? mapDiv.clientWidth : 800;
+      const viewportHeight = mapDiv ? mapDiv.clientHeight : 600;
+      
+      // Target: circle should occupy about 88-92% of the smaller viewport dimension
+      // This means padding should be about 4-6% on each side (8-12% total, leaving 88-92% for circle)
+      const viewportMin = Math.min(viewportWidth, viewportHeight);
+      const targetCircleOccupancy = 0.90; // Circle occupies 90% of viewport (5% padding on each side)
+      const targetCircleSize = viewportMin * targetCircleOccupancy;
+      
+      // Calculate circle diameter in degrees
+      const circleDiameterLat = (radius * 2) / metersPerDegreeLat;
+      const circleDiameterLng = (radius * 2) / metersPerDegreeLng;
+      
+      // Get current zoom level to estimate circle size in pixels
+      const currentZoom = mapRef.current.getZoom() || 16;
+      
+      // Estimate pixels per degree at current zoom
+      // Google Maps uses Mercator projection: pixels = 256 * 2^zoom / 360 degrees
+      const pixelsPerDegreeLat = (256 * Math.pow(2, currentZoom)) / 360;
+      const pixelsPerDegreeLng = pixelsPerDegreeLat * Math.cos(latRad);
+      
+      // Calculate circle diameter in pixels (use the larger dimension to ensure it fits)
+      const circleDiameterPixelsLat = circleDiameterLat * pixelsPerDegreeLat;
+      const circleDiameterPixelsLng = circleDiameterLng * pixelsPerDegreeLng;
+      const circleDiameterPixels = Math.max(circleDiameterPixelsLat, circleDiameterPixelsLng);
+      
+      // Calculate required padding to achieve target circle size
+      // If circle is smaller than target, we need more padding
+      // If circle is larger than target, we need less padding (but still ensure it fits)
+      const circleRatio = circleDiameterPixels / viewportMin;
+      
+      let finalPadding: number;
+      
+      if (circleRatio <= targetCircleOccupancy) {
+        // Circle is smaller than or equal to target size
+        // Calculate padding to make circle occupy target percentage of viewport
+        // Formula: circleDiameter = viewportMin - (padding * 2)
+        // So: padding = (viewportMin - circleDiameter) / 2
+        // But we want: circleDiameter = viewportMin * targetCircleOccupancy
+        // So: padding = (viewportMin - viewportMin * targetCircleOccupancy) / 2
+        finalPadding = (viewportMin - targetCircleSize) / 2;
+      } else {
+        // Circle is larger than target size
+        // Use minimum padding to ensure circle fits with comfortable margin
+        // Use 5% padding (circle will occupy ~90% of viewport)
+        finalPadding = viewportMin * 0.05;
+      }
+      
+      // Ensure padding is within reasonable bounds
+      // Minimum: 25px for very small screens (allows circle to occupy up to 92%)
+      // Maximum: 12% of viewport or 80px, whichever is smaller
+      const minPadding = Math.max(25, viewportMin * 0.02);
+      const maxPadding = Math.min(viewportMin * 0.12, 80);
+      finalPadding = Math.max(Math.min(finalPadding, maxPadding), minPadding);
+      
+      console.log('📍 Fitting bounds with optimized padding:', {
+        center: { lat: basePoint.lat, lng: basePoint.lng },
+        radius,
+        viewport: { width: viewportWidth, height: viewportHeight, min: viewportMin },
+        circleDiameterPixels: circleDiameterPixels.toFixed(0),
+        targetCircleSize: targetCircleSize.toFixed(0),
+        circleRatio: circleRatio.toFixed(2),
+        finalPadding: finalPadding.toFixed(0),
+        circleOccupancy: ((circleDiameterPixels / (viewportMin + finalPadding * 2)) * 100).toFixed(1) + '%',
+      });
+      
+      mapRef.current.fitBounds(bounds, finalPadding);
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isAutoAdjustingRef.current = false;
+      }, 500);
+    }, 300); // Small delay to batch updates and avoid conflicts
+
+    return () => {
+      clearTimeout(timeoutId);
+      isAutoAdjustingRef.current = false;
+    };
+  }, [basePoint, radius, isLoaded]);
 
   const getMarkerIcon = (place: Place, isSelected: boolean): google.maps.Symbol | undefined => {
     if (!isLoaded || typeof window === 'undefined' || !window.google) {
