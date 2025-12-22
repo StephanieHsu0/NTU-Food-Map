@@ -11,7 +11,7 @@ export default function UsageInstructions() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-9 h-9 rounded-full border border-divider bg-white text-text-secondary hover:text-primary-600 hover:border-primary-200 shadow-sm hover:shadow-md transition-all flex items-center justify-center text-sm font-semibold"
+        className="px-3 py-1.5 md:w-9 md:h-9 md:px-0 md:py-0 rounded-lg md:rounded-full border border-divider bg-white text-text-secondary hover:text-primary-600 hover:border-primary-200 shadow-sm hover:shadow-md transition-all flex items-center justify-center text-sm font-semibold"
         aria-label={t('usageInstructions.button')}
       >
         ?
@@ -38,11 +38,44 @@ export default function UsageInstructions() {
             <h3 className="text-xl font-semibold mb-4 text-text-primary">
               {t('usageInstructions.sections.features.title')}
             </h3>
-            <ul className="space-y-2 list-disc list-inside text-text-secondary">
-              {t.raw('usageInstructions.sections.features.content').map((item: string, index: number) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            <div className="space-y-3 text-text-secondary">
+              {t.raw('usageInstructions.sections.features.content').map((item: string, index: number) => {
+                const trimmed = item.trim();
+                // Check if item starts with a number followed by a dot (main point like "1. ", "2. ")
+                const isMainPoint = /^\d+\.\s/.test(trimmed);
+                
+                if (isMainPoint) {
+                  // Main point: no bullet, display as is with font-medium
+                  return (
+                    <div key={index} className="font-medium text-text-primary">
+                      {trimmed}
+                    </div>
+                  );
+                } else {
+                  // Sub-point: check if it starts with bullet or has leading spaces
+                  const hasBullet = trimmed.startsWith('•') || trimmed.startsWith('·');
+                  const leadingSpaces = item.length - trimmed.length;
+                  
+                  if (hasBullet || leadingSpaces > 0) {
+                    // Sub-point: add indentation
+                    // If it already has bullet, keep it; otherwise add one
+                    const displayText = hasBullet ? trimmed : `• ${trimmed}`;
+                    return (
+                      <div key={index} className="ml-6">
+                        {displayText}
+                      </div>
+                    );
+                  }
+                  
+                  // Regular item without special formatting
+                  return (
+                    <div key={index}>
+                      {trimmed}
+                    </div>
+                  );
+                }
+              })}
+            </div>
           </section>
 
           {/* Design Section */}

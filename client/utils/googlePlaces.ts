@@ -35,6 +35,48 @@ function convertPriceLevel(priceLevel?: number): number {
   return priceLevel === 0 ? 1 : priceLevel;
 }
 
+// Search for places by query string using Google Places Text Search
+export async function searchPlacesByQuery(
+  query: string
+): Promise<Array<{ name: string; lat: number; lng: number; address?: string }>> {
+  if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.places) {
+    throw new Error('Google Maps API not loaded. Please wait for the map to load first.');
+  }
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    throw new Error('Google Maps API Key not configured');
+  }
+
+  return new Promise((resolve, reject) => {
+    const service = new window.google.maps.places.PlacesService(
+      document.createElement('div')
+    );
+
+    const request: google.maps.places.TextSearchRequest = {
+      query: query,
+      // Bias search results to Taiwan area
+      location: new window.google.maps.LatLng(25.0170, 121.5395), // NTU approximate center
+      radius: 50000, // 50km radius
+    };
+
+    service.textSearch(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+        const places = results.map((place) => ({
+          name: place.name || '',
+          lat: place.geometry?.location?.lat() || 0,
+          lng: place.geometry?.location?.lng() || 0,
+          address: place.formatted_address,
+        }));
+        resolve(places);
+      } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+      } else {
+        reject(new Error(`Places search failed: ${status}`));
+      }
+    });
+  });
+}
+
 // Get place name at a specific location using reverse geocoding
 export async function getPlaceNameAtLocation(
   lat: number,

@@ -13,6 +13,7 @@ export default function AuthButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -24,9 +25,27 @@ export default function AuthButton() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Fetch user image from API to avoid storing in session token (prevents HTTP 431)
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data.image) {
+            setUserImage(data.image);
+          }
+        })
+        .catch(() => {
+          // Silently fail - will show initial instead
+        });
+    } else {
+      setUserImage(null);
+    }
+  }, [session]);
+
   if (status === 'loading') {
     return (
-      <div className="px-4 py-2 bg-white text-text-secondary rounded-xl border border-divider">
+      <div className="px-3 py-1.5 md:px-4 md:py-2 bg-white text-text-secondary rounded-lg md:rounded-xl border border-divider text-xs md:text-sm">
         {t('auth.loading')}
       </div>
     );
@@ -42,33 +61,46 @@ export default function AuthButton() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setOpen((prev) => !prev)}
-          className="w-9 h-9 rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all"
+          className="px-3 py-1.5 md:w-9 md:h-9 md:px-0 md:py-0 rounded-lg md:rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all gap-1.5 md:gap-0"
         >
-          {session.user.image ? (
+          {userImage ? (
             <Image
-              src={session.user.image}
+              src={userImage}
               alt={session.user.name || 'User'}
               width={36}
               height={36}
-              className="rounded-full object-cover"
+              className="rounded-full object-cover w-5 h-5 md:w-9 md:h-9 flex-shrink-0"
             />
           ) : (
-            <span className="text-sm font-semibold text-text-primary">{initial}</span>
+            <span className="text-xs md:text-sm font-semibold text-text-primary flex-shrink-0">{initial}</span>
           )}
+          <span className="md:hidden text-xs text-text-primary font-medium truncate max-w-[80px]">
+            {session.user.name?.split(' ')[0] || session.user.name || t('auth.signedIn')}
+          </span>
         </button>
 
         {open && (
           <div className="absolute right-0 mt-2 w-56 rounded-xl border border-divider bg-white shadow-md z-50">
-            <div className="px-4 py-3">
-              <p className="text-sm font-semibold text-text-primary">
+            <div className="px-4 py-3 min-w-0">
+              <p className="text-sm font-semibold text-text-primary break-words overflow-wrap-anywhere">
                 {session.user.name || t('auth.signedIn')}
               </p>
               {session.user.email && (
-                <p className="text-xs text-text-secondary mt-1 truncate">
+                <p className="text-xs text-text-secondary mt-1 break-words overflow-wrap-anywhere">
                   {session.user.email}
                 </p>
               )}
             </div>
+            <div className="h-px bg-divider" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push(`/${locale}/profile`);
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-gray-50 transition-colors"
+            >
+              {t('profile.title')}
+            </button>
             <div className="h-px bg-divider" />
             <button
               onClick={async () => {
@@ -91,7 +123,7 @@ export default function AuthButton() {
       onClick={() => {
         router.push(`/${locale}/auth/signin`);
       }}
-      className="px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md"
+      className="px-3 py-1.5 md:px-4 md:py-2 bg-primary-600 text-white rounded-lg md:rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md text-xs md:text-sm"
     >
       {t('auth.signIn')}
     </button>

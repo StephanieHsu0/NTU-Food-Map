@@ -18,7 +18,8 @@
     "notFoundDescription": "The page you are looking for does not exist",
     "backToHome": "Back to Home",
     "googleMapsTimeout": "Google Maps API loading timeout. Please refresh the page.",
-    "googleMapsLoadError": "Failed to load Google Maps API"
+    "googleMapsLoadError": "Failed to load Google Maps API",
+    "cancel": "Cancel"
   },
   "map": {
     "title": "NTU Food Map",
@@ -33,7 +34,9 @@
     "clickToSelectCenter": "Click on a location on the map to select the search center. The system will use Google Maps restaurant information for filtering.",
     "selectedLocation": "Selected location",
     "distanceFromBasePoint": "Distance from Base Point",
-    "viewRoute": "View Route"
+    "viewRoute": "View Route",
+    "searchBasePoint": "Search for a location as base point...",
+    "basePointLocked": "Base point is locked. Click reset or use search to change it"
   },
   "filters": {
     "title": "Filters",
@@ -59,6 +62,7 @@
     "features": "Features",
     "openNow": "Open now only",
     "internationalFriendly": "International friendly",
+    "filteredResults": "Filtered Results",
     "categoryNames": {
       "餐廳": "Restaurant",
       "咖啡廳": "Cafe",
@@ -127,23 +131,39 @@
       "features": {
         "title": "Feature Usage",
         "content": [
-          "1. Click on a location on the map to set the base point (Point A). The system will search for nearby restaurants centered on this point",
-          "2. Use the filters on the left to set search criteria: distance, rating, price, categories, etc.",
-          "3. Click on a restaurant from the filter results (Point B) to view details. The base point will not change",
-          "4. Click the \"View Nearby Restaurants\" button in the restaurant details to change the base point to that restaurant",
-          "5. Click the \"Reset\" button to clear all settings and start over"
+          "1. Set Base Point (Point A):",
+          "   • Use the search box to enter a location name or address to search and set the base point",
+          "   • Or click on a location on the map to set the base point (only available when no base point is set)",
+          "   • Once set, the base point is locked and won't change if you accidentally click on the map",
+          "2. Use the filters on the left to set search criteria:",
+          "   • Max Distance: Drag the slider or directly enter a value in the input box (100-5000 meters)",
+          "   • Min Rating: Drag the slider or directly enter a value (0-5, supports decimals)",
+          "   • Price: Select the maximum acceptable price level",
+          "   • Categories: Select restaurant types (multiple selection available)",
+          "   • Features: Select special requirements (e.g., show only open restaurants)",
+          "3. View Filtered Results:",
+          "   • Filtered restaurants are displayed on the map and shown in a list at the bottom left",
+          "   • Click on restaurant markers or restaurants in the list to view details",
+          "   • Clicking on a restaurant won't change the base point",
+          "4. Change Base Point:",
+          "   • Click the \"View Nearby Restaurants\" button in restaurant details to change the base point to that restaurant",
+          "   • Or use the search box to search for a new location to set the base point",
+          "   • Click the \"Reset\" button to clear all settings (including base point) and start over",
+          "5. Other Features:",
+          "   • Food Roulette: Randomly select from filtered restaurants",
+          "   • Click on empty areas of the map to close restaurant info windows"
         ]
       },
       "design": {
         "title": "Design Explanation",
         "priceStandard": {
           "title": "Price Level Standard",
-          "content": "Price levels are based on Google Places API's price_level setting:",
+          "content": "Price levels are based on Google Places API's price_level setting. Map markers are color-coded by price level:",
           "levels": {
-            "1": "$ - Inexpensive: Usually snacks, street vendors, etc. Average cost around NT$100 or less",
-            "2": "$$ - Moderate: General restaurants, cafes, etc. Average cost around NT$100-300",
-            "3": "$$$ - Expensive: Mid-to-high-end restaurants. Average cost around NT$300-600",
-            "4": "$$$$ - Very Expensive: High-end restaurants. Average cost around NT$600 or more"
+            "1": "$ - Inexpensive (Green marker 🟢): Usually snacks, street vendors, etc. Average cost around NT$100 or less",
+            "2": "$$ - Moderate (Yellow marker 🟡): General restaurants, cafes, etc. Average cost around NT$100-300",
+            "3": "$$$ - Expensive (Orange marker 🟠): Mid-to-high-end restaurants. Average cost around NT$300-600",
+            "4": "$$$$ - Very Expensive (Red marker 🔴): High-end restaurants. Average cost around NT$600 or more"
           }
         },
         "ratingStandard": {
@@ -200,6 +220,71 @@
     "saveNote": "Save Note",
     "noFavorites": "No favorites yet",
     "favorited": "Favorited"
+  },
+  "profile": {
+    "title": "Profile",
+    "editButton": "Edit Profile",
+    "cancelEdit": "Cancel",
+    "editTitle": "Edit Profile",
+    "stats": {
+      "comments": "Comments",
+      "favorites": "Favorites"
+    },
+    "tabs": {
+      "comments": "My Comments",
+      "favorites": "My Favorites"
+    },
+    "error": {
+      "loading": "Failed to load profile"
+    },
+    "edit": {
+      "name": "Name",
+      "email": "Email",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be 50 characters or less",
+      "nameLengthWarning": "Name is getting long",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Invalid email format",
+      "saveFailed": "Failed to save profile",
+      "emailOAuthHint": "Email cannot be changed for OAuth accounts"
+    },
+    "avatar": {
+      "selectFile": "Select Image",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "uploadFailed": "Upload failed",
+      "invalidType": "Invalid file type. Only images are allowed.",
+      "fileTooLarge": "File size exceeds 5MB limit.",
+      "hint": "Maximum file size: 5MB. Supported formats: JPEG, PNG, WebP, GIF",
+      "alt": "User Avatar",
+      "placeholder": "?",
+      "uploadFile": "Upload File",
+      "pasteUrl": "Paste URL",
+      "urlPlaceholder": "Enter image URL (e.g., https://example.com/image.jpg)",
+      "urlHint": "Paste an image URL from the web",
+      "applyUrl": "Apply URL",
+      "invalidUrl": "Invalid URL format",
+      "urlRequired": "Please enter an image URL",
+      "urlMustStartWithHttp": "URL must start with http:// or https://",
+      "imageLoadFailed": "Unable to load image from this URL. Please check if the URL is correct and the image is accessible.",
+      "invalidImageUrl": "Unable to load image from this URL",
+      "preview": "Preview"
+    },
+    "comments": {
+      "noComments": "You haven't commented on any places yet.",
+      "edited": "Edited",
+      "loadMore": "Load More",
+      "unknownPlace": "Unknown Place"
+    },
+    "favorites": {
+      "noFavorites": "You haven't favorited any places yet.",
+      "note": "Note",
+      "addedOn": "Added on",
+      "loadingPlace": "Loading place information"
+    }
   }
 }
 

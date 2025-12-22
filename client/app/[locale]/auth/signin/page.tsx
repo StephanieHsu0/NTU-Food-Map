@@ -12,7 +12,17 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
 
   const handleSignIn = (provider: 'google' | 'line') => {
-    const callbackUrl = searchParams.get('callbackUrl') || `/${locale}`;
+    // Use a simple callback URL to prevent HTTP 431 errors
+    // Long callback URLs can cause request header size issues
+    const defaultCallback = `/${locale}`;
+    const requestedCallback = searchParams.get('callbackUrl');
+    
+    // Only use requested callback if it's short and safe
+    // Limit to 100 characters to prevent header size issues
+    const callbackUrl = (requestedCallback && requestedCallback.length <= 100) 
+      ? requestedCallback 
+      : defaultCallback;
+    
     signIn(provider, { callbackUrl });
   };
 

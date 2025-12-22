@@ -11,6 +11,20 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
+  webpack: (config, { isServer }) => {
+    // Fix for next-auth/react module resolution
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    // Fix for @formatjs module resolution
+    config.resolve.extensionAlias = {
+      '.js': ['.js', '.ts', '.tsx'],
+    };
+    return config;
+  },
 };
 
 export default withNextIntl(nextConfig);

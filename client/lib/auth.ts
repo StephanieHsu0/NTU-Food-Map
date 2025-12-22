@@ -3,6 +3,8 @@ import Google from 'next-auth/providers/google';
 import Line from 'next-auth/providers/line';
 import type { Adapter } from 'next-auth/adapters';
 import { MongoDBAdapter } from './mongodb-adapter';
+import { connectToDatabase } from './db';
+import { ObjectId } from 'mongodb';
 
 // NextAuth v5 automatically detects environment variables with AUTH_ prefix
 // For Google: AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
@@ -18,7 +20,19 @@ const providers: any[] = [];
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   // Use auto-detection - NextAuth will automatically read AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
   // TypeScript types may not reflect this yet, so we use type assertion
-  providers.push(Google({} as any));
+  providers.push(Google({
+    // Limit authorization parameters to prevent HTTP 431 errors
+    authorization: {
+      params: {
+        // Request minimal scopes to reduce response size
+        scope: 'openid email profile',
+        // Prevent prompt parameter from being too long
+        prompt: 'consent',
+        // Limit access type
+        access_type: 'offline',
+      },
+    },
+  } as any));
 } else if (process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID) {
   // Fallback: explicitly pass credentials for backward compatibility
   if (process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET) {
@@ -26,6 +40,13 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
       Google({
         clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET,
+        authorization: {
+          params: {
+            scope: 'openid email profile',
+            prompt: 'consent',
+            access_type: 'offline',
+          },
+        },
       })
     );
   } else {
@@ -79,23 +100,73 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MongoDBAdapter() as Adapter,
   providers,
   session: {
-    strategy: 'jwt',
+    strategy: 'database', // Use database session instead of JWT to prevent HTTP 431
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' 
+        ? `__Secure-next-auth.session-token`
+        : `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        // Shorter maxAge to reduce cookie accumulation
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      },
+    },
+    // Optimize callback URL cookie to prevent HTTP 431
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production'
+        ? `__Secure-next-auth.callback-url`
+        : `next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60, // 1 hour - short lived
+      },
+    },
+    // Optimize CSRF token cookie
+    csrfToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? `__Host-next-auth.csrf-token`
+        : `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24, // 24 hours
+      },
+    },
   },
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id;
-      }
-      if (account) {
-        token.provider = account.provider;
-        token.providerAccountId = account.providerAccountId;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).provider = token.provider as string;
+    async session({ session, user }) {
+      // With database strategy, user is available directly
+      if (session.user && user) {
+        (session.user as any).id = user.id;
+        
+        // Fetch provider from accounts collection
+        try {
+          const db = await connectToDatabase();
+          const accountsCollection = db.collection('accounts');
+          const account = await accountsCollection.findOne({ userId: new ObjectId(user.id) });
+          (session.user as any).provider = account?.provider || null;
+        } catch (error) {
+          console.error('Error fetching provider in session callback:', error);
+        }
+        
+        // Use user data from database (already fetched by adapter)
+        // DO NOT set image in session - it can be very long
+        session.user.name = user.name || null;
+        if (user.email) {
+          session.user.email = user.email;
+        }
+        session.user.image = null; // Always null to prevent HTTP 431
       }
       return session;
     },

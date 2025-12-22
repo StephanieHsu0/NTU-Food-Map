@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow, Circle } from '@react-google-maps/api';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { GoogleMap, Marker, InfoWindow, Circle, useJsApiLoader } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Place } from '@/utils/types';
@@ -27,24 +27,6 @@ interface MapProps {
   onMapLoad?: () => void;
   radius?: number;
   onLocationSelect?: (lat: number, lng: number, name?: string) => void;
-}
-
-// Calculate distance between two points using Haversine formula
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-// Generate Google Maps directions link
-function getGoogleMapsDirectionsLink(lat1: number, lng1: number, lat2: number, lng2: number): string {
-  return `https://www.google.com/maps/dir/${lat1},${lng1}/${lat2},${lng2}`;
 }
 
 export default function Map({ 
@@ -76,6 +58,7 @@ export default function Map({
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const circleRef = useRef<google.maps.Circle | null>(null);
+  const isAutoAdjustingRef = useRef(false);
 
   // Debug: Log places when they change
   useEffect(() => {
@@ -85,6 +68,14 @@ export default function Map({
   }, [places]);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
+  const libraries = useMemo<("places")[]>(() => ['places'], []);
+
+  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey,
+    libraries,
+    language: mapLanguage,
+  });
 
   // Keep onMapClick ref up to date
   useEffect(() => {
@@ -155,16 +146,28 @@ export default function Map({
       circleRef.current.setMap(null);
       circleRef.current = null;
     }
+    // Clean up basePoint marker
+    if (basePointMarkerRef.current) {
+      basePointMarkerRef.current.setMap(null);
+      basePointMarkerRef.current = null;
+    }
+    if (basePointInfoWindowRef.current) {
+      basePointInfoWindowRef.current.close();
+      basePointInfoWindowRef.current = null;
+    }
     mapRef.current = null;
   }, []);
 
-  // Update map center when center prop changes
+  // Update map center when center prop changes (but don't auto-adjust if we have basePoint)
   useEffect(() => {
     if (mapRef.current && isLoaded) {
+      // Only auto-center if we don't have a basePoint (to avoid conflicts with radius-based auto-adjust)
+      if (!basePoint) {
       mapRef.current.setCenter({ lat: center[0], lng: center[1] });
       mapRef.current.setZoom(16);
     }
-  }, [center, isLoaded]);
+    }
+  }, [center, isLoaded, basePoint]);
 
   // When selectedPlace changes, pan to that place and show info window
   useEffect(() => {
@@ -178,24 +181,39 @@ export default function Map({
       return;
     }
 
-    // Pan to the selected place
+    // Pan to the selected place (and basePoint if available)
     const placePosition = { lat: selectedPlace.lat, lng: selectedPlace.lng };
-    mapRef.current.panTo(placePosition);
-    
-    // Set zoom level to show the place clearly
-    mapRef.current.setZoom(17);
+
+    if (basePoint) {
+      // When both basePoint and selectedPlace are present, always fit bounds to show both
+      // Temporarily disable auto-adjust flag to avoid skipping view updates
+      isAutoAdjustingRef.current = false;
+      // Fit both the selected place and the basePoint in view
+      const bounds = new window.google.maps.LatLngBounds();
+      bounds.extend(placePosition);
+      bounds.extend({ lat: basePoint.lat, lng: basePoint.lng });
+
+      // Use comfortable padding to ensure both points and info window are visible
+      mapRef.current.fitBounds(bounds, { top: 100, bottom: 100, left: 100, right: 100 });
+    } else {
+      // Only adjust zoom when not auto-adjusting radius
+      if (!isAutoAdjustingRef.current) {
+        mapRef.current.panTo(placePosition);
+        mapRef.current.setZoom(17);
+      }
+    }
     
     // Show info window for the selected place
     setInfoWindowPlace(selectedPlace);
-  }, [selectedPlace, isLoaded]);
+  }, [selectedPlace, isLoaded, basePoint]);
 
-  // Update basePoint marker (點A) - this is the search center
+  // Update basePoint marker when basePoint changes
   useEffect(() => {
     if (!isLoaded || !mapRef.current) {
       return;
     }
 
-    // Clean up existing basePoint marker
+    // Clean up existing basePoint marker if any
     if (basePointMarkerRef.current) {
       basePointMarkerRef.current.setMap(null);
       basePointMarkerRef.current = null;
@@ -209,27 +227,21 @@ export default function Map({
       return;
     }
 
-    // Create marker for basePoint (點A)
+    // Create marker for basePoint
     const marker = new window.google.maps.Marker({
       position: { lat: basePoint.lat, lng: basePoint.lng },
       map: mapRef.current,
       icon: {
         path: window.google.maps.SymbolPath.CIRCLE,
         scale: 12,
-        fillColor: '#FF0000',
+        fillColor: '#10B981', // Green color for base point
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
         strokeWeight: 3,
       },
       title: basePoint.name || t('map.basePoint'),
-      zIndex: 1001, // Higher than other markers
+      zIndex: 1001, // Higher than location marker
       clickable: true,
-      label: {
-        text: 'A',
-        color: 'white',
-        fontSize: '12px',
-        fontWeight: 'bold',
-      },
     });
 
     // Add click listener to show info window
@@ -245,9 +257,11 @@ export default function Map({
             <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
               ${t('map.basePoint')}: ${displayName}
             </div>
+            ${basePoint.name ? `
             <div style="font-size: 11px; color: #666; margin-top: 4px;">
               ${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)}
             </div>
+            ` : ''}
           </div>
         `,
       });
@@ -257,16 +271,48 @@ export default function Map({
     });
 
     basePointMarkerRef.current = marker;
+  }, [basePoint, isLoaded, t]);
 
-    // Create or update circle for search radius centered on basePoint
+  // Update location marker and circle when selectedLocation changes
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current) {
+      return;
+    }
+
+    // Always clean up existing circle first
     if (circleRef.current) {
       circleRef.current.setMap(null);
       circleRef.current = null;
     }
 
-    if (radius && radius > 0) {
+    if (!selectedLocation) {
+      // Clean up if selectedLocation is removed
+      if (locationMarkerRef.current) {
+        locationMarkerRef.current.setMap(null);
+        locationMarkerRef.current = null;
+      }
+      if (locationInfoWindowRef.current) {
+        locationInfoWindowRef.current.close();
+        locationInfoWindowRef.current = null;
+      }
+      setShowLocationInfo(false);
+      return;
+    }
+
+    // Remove existing marker if any
+    if (locationMarkerRef.current) {
+      locationMarkerRef.current.setMap(null);
+    }
+    if (locationInfoWindowRef.current) {
+      locationInfoWindowRef.current.close();
+    }
+
+    // Create or update circle for search radius (only one circle should exist)
+    // Use basePoint if available, otherwise use selectedLocation
+    const circleCenter = basePoint || selectedLocation;
+    if (radius && radius > 0 && circleCenter) {
       const circle = new window.google.maps.Circle({
-        center: { lat: basePoint.lat, lng: basePoint.lng },
+        center: { lat: circleCenter.lat, lng: circleCenter.lng },
         radius: radius,
         fillColor: '#4285F4',
         fillOpacity: 0.1,
@@ -274,55 +320,31 @@ export default function Map({
         strokeOpacity: 0.5,
         strokeWeight: 2,
         map: mapRef.current,
-        clickable: false,
+        clickable: false, // Ensure circle doesn't block map clicks
       });
       circleRef.current = circle;
     }
-  }, [basePoint, isLoaded, radius, t]);
 
-  // Update location marker when selectedLocation changes (for display purposes)
-  useEffect(() => {
-    if (!isLoaded || !mapRef.current) {
+    // Only create marker for selectedLocation if it's different from basePoint
+    if (basePoint && basePoint.lat === selectedLocation.lat && basePoint.lng === selectedLocation.lng) {
+      // selectedLocation is the same as basePoint, don't create duplicate marker
       return;
     }
 
-    // Clean up existing location marker
-    if (locationMarkerRef.current) {
-      locationMarkerRef.current.setMap(null);
-      locationMarkerRef.current = null;
-    }
-    if (locationInfoWindowRef.current) {
-      locationInfoWindowRef.current.close();
-      locationInfoWindowRef.current = null;
-    }
-
-    if (!selectedLocation) {
-      setShowLocationInfo(false);
-      return;
-    }
-
-    // Only show selectedLocation marker if it's different from basePoint
-    if (basePoint && 
-        Math.abs(selectedLocation.lat - basePoint.lat) < 0.0001 && 
-        Math.abs(selectedLocation.lng - basePoint.lng) < 0.0001) {
-      // Same location as basePoint, don't show duplicate marker
-      return;
-    }
-
-    // Create marker for selectedLocation (if different from basePoint)
+    // Create new marker for selected location
     const marker = new window.google.maps.Marker({
       position: { lat: selectedLocation.lat, lng: selectedLocation.lng },
       map: mapRef.current,
       icon: {
         path: window.google.maps.SymbolPath.CIRCLE,
         scale: 10,
-        fillColor: '#00FF00',
+        fillColor: '#FF0000',
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
         strokeWeight: 3,
       },
       title: selectedLocation.name || t('map.selectLocation'),
-      zIndex: 999,
+      zIndex: 1000,
       clickable: true,
     });
 
@@ -353,8 +375,156 @@ export default function Map({
       setShowLocationInfo(true);
     });
 
+    // Auto-open info window when location is selected
+    const displayName = selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`;
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="padding: 8px; min-width: 150px;">
+          <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
+            ${displayName}
+          </div>
+          ${selectedLocation.name ? `
+          <div style="font-size: 11px; color: #666; margin-top: 4px;">
+            ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
+          </div>
+          ` : ''}
+        </div>
+      `,
+    });
+    
+    infoWindow.open(mapRef.current, marker);
+    locationInfoWindowRef.current = infoWindow;
+    setShowLocationInfo(true);
+
     locationMarkerRef.current = marker;
-  }, [selectedLocation, basePoint, isLoaded, t]);
+  }, [selectedLocation, basePoint, isLoaded, radius, t]);
+
+  // Auto-adjust map zoom and bounds when radius or basePoint changes
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current) {
+      return;
+    }
+
+    // Only auto-adjust if we have both basePoint and radius
+    if (!basePoint || !radius || radius <= 0) {
+      isAutoAdjustingRef.current = false;
+      return;
+    }
+
+    console.log('🔄 Auto-adjusting map view for radius:', radius, 'basePoint:', basePoint);
+    isAutoAdjustingRef.current = true;
+
+    // Use a small delay to avoid conflicts with other map operations
+    const timeoutId = setTimeout(() => {
+      if (!mapRef.current || !basePoint) {
+        isAutoAdjustingRef.current = false;
+        return;
+      }
+
+      // Calculate the bounds to fit the circle
+      // Convert radius from meters to degrees (approximate)
+      // At the equator, 1 degree ≈ 111,320 meters
+      // We need to account for latitude
+      const latRad = (basePoint.lat * Math.PI) / 180;
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = 111320 * Math.cos(latRad);
+
+      const latOffset = radius / metersPerDegreeLat;
+      const lngOffset = radius / metersPerDegreeLng;
+
+      const bounds = new window.google.maps.LatLngBounds(
+        new window.google.maps.LatLng(
+          basePoint.lat - latOffset,
+          basePoint.lng - lngOffset
+        ),
+        new window.google.maps.LatLng(
+          basePoint.lat + latOffset,
+          basePoint.lng + lngOffset
+        )
+      );
+
+      // Fit the map to show the entire circle with comfortable padding
+      // Calculate padding to make circle occupy approximately 88-92% of the viewport
+      const mapDiv = mapRef.current.getDiv();
+      const viewportWidth = mapDiv ? mapDiv.clientWidth : 800;
+      const viewportHeight = mapDiv ? mapDiv.clientHeight : 600;
+      
+      // Target: circle should occupy about 88-92% of the smaller viewport dimension
+      // This means padding should be about 4-6% on each side (8-12% total, leaving 88-92% for circle)
+      const viewportMin = Math.min(viewportWidth, viewportHeight);
+      const targetCircleOccupancy = 0.90; // Circle occupies 90% of viewport (5% padding on each side)
+      const targetCircleSize = viewportMin * targetCircleOccupancy;
+      
+      // Calculate circle diameter in degrees
+      const circleDiameterLat = (radius * 2) / metersPerDegreeLat;
+      const circleDiameterLng = (radius * 2) / metersPerDegreeLng;
+      
+      // Get current zoom level to estimate circle size in pixels
+      const currentZoom = mapRef.current.getZoom() || 16;
+      
+      // Estimate pixels per degree at current zoom
+      // Google Maps uses Mercator projection: pixels = 256 * 2^zoom / 360 degrees
+      const pixelsPerDegreeLat = (256 * Math.pow(2, currentZoom)) / 360;
+      const pixelsPerDegreeLng = pixelsPerDegreeLat * Math.cos(latRad);
+      
+      // Calculate circle diameter in pixels (use the larger dimension to ensure it fits)
+      const circleDiameterPixelsLat = circleDiameterLat * pixelsPerDegreeLat;
+      const circleDiameterPixelsLng = circleDiameterLng * pixelsPerDegreeLng;
+      const circleDiameterPixels = Math.max(circleDiameterPixelsLat, circleDiameterPixelsLng);
+      
+      // Calculate required padding to achieve target circle size
+      // If circle is smaller than target, we need more padding
+      // If circle is larger than target, we need less padding (but still ensure it fits)
+      const circleRatio = circleDiameterPixels / viewportMin;
+      
+      let finalPadding: number;
+      
+      if (circleRatio <= targetCircleOccupancy) {
+        // Circle is smaller than or equal to target size
+        // Calculate padding to make circle occupy target percentage of viewport
+        // Formula: circleDiameter = viewportMin - (padding * 2)
+        // So: padding = (viewportMin - circleDiameter) / 2
+        // But we want: circleDiameter = viewportMin * targetCircleOccupancy
+        // So: padding = (viewportMin - viewportMin * targetCircleOccupancy) / 2
+        finalPadding = (viewportMin - targetCircleSize) / 2;
+      } else {
+        // Circle is larger than target size
+        // Use minimum padding to ensure circle fits with comfortable margin
+        // Use 5% padding (circle will occupy ~90% of viewport)
+        finalPadding = viewportMin * 0.05;
+      }
+      
+      // Ensure padding is within reasonable bounds
+      // Minimum: 25px for very small screens (allows circle to occupy up to 92%)
+      // Maximum: 12% of viewport or 80px, whichever is smaller
+      const minPadding = Math.max(25, viewportMin * 0.02);
+      const maxPadding = Math.min(viewportMin * 0.12, 80);
+      finalPadding = Math.max(Math.min(finalPadding, maxPadding), minPadding);
+      
+      console.log('📍 Fitting bounds with optimized padding:', {
+        center: { lat: basePoint.lat, lng: basePoint.lng },
+        radius,
+        viewport: { width: viewportWidth, height: viewportHeight, min: viewportMin },
+        circleDiameterPixels: circleDiameterPixels.toFixed(0),
+        targetCircleSize: targetCircleSize.toFixed(0),
+        circleRatio: circleRatio.toFixed(2),
+        finalPadding: finalPadding.toFixed(0),
+        circleOccupancy: ((circleDiameterPixels / (viewportMin + finalPadding * 2)) * 100).toFixed(1) + '%',
+      });
+      
+      mapRef.current.fitBounds(bounds, finalPadding);
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isAutoAdjustingRef.current = false;
+      }, 500);
+    }, 300); // Small delay to batch updates and avoid conflicts
+
+    return () => {
+      clearTimeout(timeoutId);
+      isAutoAdjustingRef.current = false;
+    };
+  }, [basePoint, radius, isLoaded]);
 
   const getMarkerIcon = (place: Place, isSelected: boolean): google.maps.Symbol | undefined => {
     if (!isLoaded || typeof window === 'undefined' || !window.google) {
@@ -439,13 +609,13 @@ export default function Map({
     );
   }
 
-  // Show error if LoadScript failed
-  if (loadError) {
+  // Show error if script failed
+  if (scriptError || loadError) {
     return (
       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
         <div className="text-center p-4 max-w-md">
           <p className="text-red-600 font-semibold text-lg mb-2">Google Maps 載入失敗</p>
-          <p className="text-sm text-gray-600 mt-2 mb-4">{loadError}</p>
+          <p className="text-sm text-gray-600 mt-2 mb-4">{(scriptError && scriptError.message) || loadError}</p>
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p className="font-semibold mb-1 text-gray-900">可能的原因：</p>
             <ul className="list-disc list-inside space-y-1 text-left">
@@ -460,134 +630,119 @@ export default function Map({
     );
   }
 
-  return (
-    <div className="w-full h-full">
-      <LoadScript 
-        key={mapLanguage} // Force reload when language changes
-        googleMapsApiKey={googleMapsApiKey}
-        libraries={['places']}
-        language={mapLanguage}
-        loadingElement={<div className="w-full h-full bg-gray-100 flex items-center justify-center">Loading Google Maps...</div>}
-        onError={(error) => {
-          console.error('❌ Google Maps LoadScript error:', error);
-          console.error('Error details:', {
-            message: error?.message,
-            name: error?.name,
-            stack: error?.stack,
-            apiKey: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'missing',
-          });
-          const errorMessage = error?.message || 'Unknown error';
-          setLoadError(`無法載入 Google Maps: ${errorMessage}`);
-        }}
-      >
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={{ lat: center[0], lng: center[1] }}
-          zoom={16}
-          onLoad={handleMapLoad}
-          onUnmount={onMapUnmount}
-          options={{
-            disableDefaultUI: false,
-            zoomControl: true,
-            streetViewControl: false,
-            mapTypeControl: false,
-            fullscreenControl: true,
-          }}
+  const isApiLoaded = scriptLoaded && typeof window !== 'undefined' && !!window.google?.maps;
+
+  const mapElement = (
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={{ lat: center[0], lng: center[1] }}
+      zoom={16}
+      onLoad={handleMapLoad}
+      onUnmount={onMapUnmount}
+      options={{
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: true,
+      }}
+    >
+      {/* Search radius circle - managed via useEffect to ensure only one circle exists */}
+
+      {places && Array.isArray(places) && places.length > 0 && places.map((place) => {
+        if (!place || !place.lat || !place.lng) {
+          console.warn('Invalid place data:', place);
+          return null;
+        }
+        const isSelected = selectedPlace?.id === place.id;
+        return (
+          <Marker
+            key={place.id || `${place.lat}-${place.lng}`}
+            position={{ lat: place.lat, lng: place.lng }}
+            icon={isLoaded ? getMarkerIcon(place, isSelected) : undefined}
+            onClick={(e) => {
+              // Stop event propagation to prevent map click
+              if (e.domEvent) {
+                e.domEvent.stopPropagation();
+              }
+              handleMarkerClick(place);
+            }}
+            label={{
+              text: '$'.repeat(place.price_level || 1) || '?',
+              color: 'white',
+              fontSize: '11px',
+              fontWeight: 'bold',
+            }}
+          />
+        );
+      })}
+
+      {infoWindowPlace && (
+        <InfoWindow
+          position={{ lat: infoWindowPlace.lat, lng: infoWindowPlace.lng }}
+          onCloseClick={handleInfoWindowClose}
         >
-          {/* Search radius circle - managed via useEffect to ensure only one circle exists */}
-
-          {places && Array.isArray(places) && places.length > 0 && places.map((place) => {
-            if (!place || !place.lat || !place.lng) {
-              console.warn('Invalid place data:', place);
-              return null;
-            }
-            const isSelected = selectedPlace?.id === place.id;
-            return (
-              <Marker
-                key={place.id || `${place.lat}-${place.lng}`}
-                position={{ lat: place.lat, lng: place.lng }}
-                icon={isLoaded ? getMarkerIcon(place, isSelected) : undefined}
-                onClick={(e) => {
-                  // Stop event propagation to prevent map click
-                  if (e.domEvent) {
-                    e.domEvent.stopPropagation();
-                  }
-                  handleMarkerClick(place);
-                }}
-                label={{
-                  text: '$'.repeat(place.price_level || 1) || '?',
-                  color: 'white',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                }}
-              />
-            );
-          })}
-
-          {infoWindowPlace && (
-            <InfoWindow
-              position={{ lat: infoWindowPlace.lat, lng: infoWindowPlace.lng }}
-              onCloseClick={handleInfoWindowClose}
-            >
-              <div className="p-2 min-w-[200px]">
-                <h3 className="font-semibold text-sm mb-1 text-gray-900">{infoWindowPlace.name_zh}</h3>
-                <p className="text-xs text-gray-600 mb-2">{infoWindowPlace.name_en}</p>
-                <div className="text-xs space-y-1">
-                  <div>
-                    <span className="text-gray-900">⭐ {infoWindowPlace.rating.toFixed(1)}</span>
-                    <span className="ml-2 text-gray-900">{'$'.repeat(infoWindowPlace.price_level)}</span>
-                  </div>
-                  {infoWindowPlace.distance_m && (
-                    <div className="text-gray-700">
-                      {(infoWindowPlace.distance_m / 1000).toFixed(2)} km
-                    </div>
-                  )}
-                  {/* Show distance from basePoint if available */}
-                  {basePoint && (
-                    <div className="text-gray-700 mt-2">
-                      <div className="font-semibold">{t('map.distanceFromBasePoint')}:</div>
-                      <div>
-                        {(calculateDistance(basePoint.lat, basePoint.lng, infoWindowPlace.lat, infoWindowPlace.lng) / 1000).toFixed(2)} km
-                      </div>
-                      <a
-                        href={getGoogleMapsDirectionsLink(basePoint.lat, basePoint.lng, infoWindowPlace.lat, infoWindowPlace.lng)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline mt-1 inline-block"
-                      >
-                        {t('map.viewRoute')}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    <button
-                      onClick={() => {
-                        if (infoWindowPlace.id) {
-                          router.push(`/${locale}/place/${infoWindowPlace.id}`);
-                        }
-                      }}
-                      className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                    >
-                      {t('map.viewDetails')}
-                    </button>
-                    {onLocationSelect && (
-                      <button
-                        onClick={() => {
-                          onLocationSelect(infoWindowPlace.lat, infoWindowPlace.lng, infoWindowPlace.name_zh || infoWindowPlace.name_en);
-                          handleInfoWindowClose();
-                        }}
-                        className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
-                      >
-                        {t('map.viewNearby')}
-                      </button>
-                    )}
-                  </div>
-                </div>
+          <div className="p-2 min-w-[200px]">
+            <h3 className="font-semibold text-sm mb-1 text-gray-900">{infoWindowPlace.name_zh}</h3>
+            <p className="text-xs text-gray-600 mb-2">{infoWindowPlace.name_en}</p>
+            <div className="text-xs space-y-1">
+              <div>
+                <span className="text-gray-900">⭐ {infoWindowPlace.rating.toFixed(1)}</span>
+                <span className="ml-2 text-gray-900">{'$'.repeat(infoWindowPlace.price_level)}</span>
               </div>
-            </InfoWindow>
-          )}
-        </GoogleMap>
-      </LoadScript>
+              {infoWindowPlace.distance_m && (
+                <div className="text-gray-700">
+                  {(infoWindowPlace.distance_m / 1000).toFixed(2)} km
+                </div>
+              )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    if (infoWindowPlace.id) {
+                      router.push(`/${locale}/place/${infoWindowPlace.id}`);
+                    }
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                >
+                  {t('map.viewDetails')}
+                </button>
+                {onLocationSelect && (
+                  <button
+                    onClick={() => {
+                      onLocationSelect(infoWindowPlace.lat, infoWindowPlace.lng, infoWindowPlace.name_zh || infoWindowPlace.name_en);
+                      handleInfoWindowClose();
+                    }}
+                    className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                  >
+                    {t('map.viewNearby')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+    </GoogleMap>
+  );
+
+  // If script still loading, show loading state
+  if (!scriptLoaded) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        Loading Google Maps...
+      </div>
+    );
+  }
+
+  // If API already loaded, render map directly (useJsApiLoader prevents double load)
+  if (isApiLoaded) {
+    return <div className="w-full h-full">{mapElement}</div>;
+  }
+
+  // Fallback: should rarely happen because scriptLoaded implies API present
+  return (
+    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+      Loading Google Maps...
     </div>
   );
 }

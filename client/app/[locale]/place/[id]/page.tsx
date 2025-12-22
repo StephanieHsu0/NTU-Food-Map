@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
-import { LoadScript } from '@react-google-maps/api';
+import { useJsApiLoader } from '@react-google-maps/api';
 import { fetchPlace } from '@/utils/api';
 import { getPlaceDetails } from '@/utils/googlePlaces';
 import { Place } from '@/utils/types';
@@ -21,98 +21,190 @@ export default function PlaceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
 
   // Check if this is a Google Places ID
   // Google Places IDs typically start with ChIJ or ChlJ and are 27 characters long
-  const isGooglePlacesId = params.id && (
-    (params.id as string).startsWith('ChIJ') || 
-    (params.id as string).startsWith('ChlJ') ||
-    (params.id as string).length > 20
-  );
+  const isGooglePlacesId = useMemo(() => {
+    if (!params.id) return false;
+    const idStr = params.id as string;
+    return idStr.startsWith('ChIJ') || idStr.startsWith('ChlJ') || idStr.length > 20;
+  }, [params.id]);
 
-  // Static libraries array to avoid LoadScript reload warning
-  const libraries: ('places')[] = ['places'];
+  // Static libraries array to avoid reload warning
+  const libraries = useMemo<("places")[]>(() => ['places'], []);
+
+  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey,
+    libraries,
+  });
 
   useEffect(() => {
-    if (params.id) {
-      // If it's a Google Places ID, wait for maps to load
-      if (isGooglePlacesId && !mapsLoaded) {
-        return; // Wait for maps to load
-      }
-      loadPlace(params.id as string);
+    if (!params.id) return;
+
+    let isMounted = true;
+    const isMountedRef = () => isMounted;
+    const apiLoaded = typeof window !== 'undefined' && !!window.google?.maps?.places;
+
+    // If it's a Google Places ID, wait for maps to load
+    if (isGooglePlacesId && !mapsLoaded && !apiLoaded) {
+      return () => {
+        isMounted = false;
+      };
     }
+
+    // If API is already loaded, mark as loaded to unblock data fetching
+    if (isGooglePlacesId && apiLoaded && !mapsLoaded) {
+      setMapsLoaded(true);
+    }
+
+    // Small delay to ensure component is fully mounted before loading
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        loadPlace(params.id as string, isMountedRef);
+      }
+    }, 100);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [params.id, mapsLoaded, isGooglePlacesId]);
 
-  const loadPlace = async (id: string) => {
+  // Mark maps loaded when script is ready
+  useEffect(() => {
+    if (scriptLoaded && !mapsLoaded) {
+      setMapsLoaded(true);
+    }
+  }, [scriptLoaded, mapsLoaded]);
+
+  // Handle script load error
+  useEffect(() => {
+    if (scriptError) {
+      setError(t('common.googleMapsLoadError'));
+      setLoading(false);
+    }
+  }, [scriptError, t]);
+
+  const loadPlace = async (id: string, isMountedRef: () => boolean) => {
     setLoading(true);
     setError(null);
+    // Clear previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    // Set a hard timeout to avoid infinite loading (e.g., Maps API not loaded)
+    timeoutRef.current = setTimeout(() => {
+      if (isMountedRef()) {
+        setLoading(false);
+        setError(t('common.googleMapsLoadError'));
+      }
+    }, 10000);
+
+    const waitForPlacesApi = async () => {
+      let retries = 0;
+      const maxRetries = 10;
+      while (typeof window === 'undefined' || !window.google?.maps?.places) {
+        if (retries >= maxRetries) {
+          throw new Error(t('common.googleMapsTimeout'));
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+        retries++;
+      }
+    };
+
     try {
       if (isGooglePlacesId) {
-        // Wait for Google Maps API with retries
-        let retries = 0;
-        const maxRetries = 10;
-        while (typeof window === 'undefined' || !window.google?.maps?.places) {
-          if (retries >= maxRetries) {
-            throw new Error(t('common.googleMapsTimeout'));
-          }
-          await new Promise(resolve => setTimeout(resolve, 300));
-          retries++;
-        }
-        
+        // Ensure Google Places API is ready
+        await waitForPlacesApi();
+
         // Use Google Places API for Google Places IDs
         // Default location: NTU center
         const defaultLat = 25.0170;
         const defaultLng = 121.5395;
         const data = await getPlaceDetails(id, defaultLat, defaultLng);
-        console.log('Loaded place data:', data);
+        if (!isMountedRef()) return;
         setPlace(data);
       } else {
         // Use database API for regular IDs
         const data = await fetchPlace(id);
+        if (!isMountedRef()) return;
         setPlace(data);
       }
     } catch (error) {
       console.error('Failed to load place:', error);
+      if (!isMountedRef()) return;
       setPlace(null);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load place';
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (isMountedRef()) {
+        setLoading(false);
+      }
     }
   };
 
   // Render content
   const renderContent = () => {
+    if (error && !loading) {
+      return (
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <button
+            onClick={() => router.back()}
+            className="mb-4 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+          >
+            ← {t('common.back')}
+          </button>
+          <div className="bg-white rounded-xl shadow-md border border-divider p-6 text-center">
+            <div className="text-red-600 font-semibold text-lg mb-2">
+              {t('common.error')}
+            </div>
+            {error && (
+              <div className="text-sm text-text-secondary mb-4">{error}</div>
+            )}
+            <div className="flex items-center justify-center mb-4">
+              <button
+                onClick={() => {
+                  if (params.id) {
+                    loadPlace(params.id as string, () => true);
+                  }
+                }}
+                className="px-4 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm"
+              >
+                {t('common.retry')}
+              </button>
+            </div>
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2.5 bg-white text-primary-600 border border-primary-200 rounded-xl hover:bg-primary-50 transition-all font-medium shadow-sm"
+            >
+              {t('place.backToMap')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (loading) {
       return (
-        <div className="max-w-4xl mx-auto px-4 py-8 bg-background min-h-screen">
-          <div className="h-4 w-16 bg-gray-200 rounded mb-4 animate-pulse" />
-          <div className="bg-white rounded-xl shadow-md border border-divider overflow-hidden p-6 lg:p-8 animate-pulse space-y-6">
-            <div className="h-8 w-2/3 bg-gray-200 rounded" />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-4 bg-gray-200 rounded w-24" />
-              <div className="h-4 bg-gray-200 rounded w-20" />
-              <div className="h-4 bg-gray-200 rounded w-28" />
-              <div className="h-4 bg-gray-200 rounded w-24" />
-            </div>
-
-            <div className="space-y-3 border-t border-divider pt-4">
-              <div className="h-5 bg-gray-200 rounded w-32" />
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-            </div>
-
-            <div className="space-y-3 border-t border-divider pt-4">
-              <div className="h-5 bg-gray-200 rounded w-32" />
-              <div className="flex gap-2 flex-wrap">
-                <div className="h-7 bg-gray-200 rounded-full w-20" />
-                <div className="h-7 bg-gray-200 rounded-full w-16" />
-                <div className="h-7 bg-gray-200 rounded-full w-24" />
+        <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="h-12 w-12 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full bg-primary-600 opacity-20 animate-pulse" />
               </div>
             </div>
+            <div className="text-sm font-medium text-text-primary">{t('common.loading')}</div>
+            <div className="text-xs text-text-secondary">載入餐廳資訊中...</div>
           </div>
         </div>
       );
@@ -383,23 +475,15 @@ export default function PlaceDetailPage() {
     );
   };
 
-  // If it's a Google Places ID, wrap with LoadScript
-  if (isGooglePlacesId && googleMapsApiKey) {
+  // If script is not loaded yet for Google Places ID, show loading
+  if (isGooglePlacesId && !scriptLoaded) {
     return (
-      <LoadScript
-        googleMapsApiKey={googleMapsApiKey}
-        libraries={libraries}
-        onLoad={() => {
-          setMapsLoaded(true);
-        }}
-        onError={(error) => {
-          console.error('Failed to load Google Maps:', error);
-          setError(t('common.googleMapsLoadError'));
-          setLoading(false);
-        }}
-      >
-        {renderContent()}
-      </LoadScript>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-full border-4 border-primary-600 border-t-transparent animate-spin" />
+          <div className="text-sm text-text-secondary">{t('common.loading')}</div>
+        </div>
+      </div>
     );
   }
 

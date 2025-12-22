@@ -2,22 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { FilterParams } from '@/utils/types';
+import { FilterParams, Place } from '@/utils/types';
+import PlaceCard from './PlaceCard';
+import Link from 'next/link';
 
 interface FiltersProps {
   filters: FilterParams;
   onChange: (filters: FilterParams) => void;
   onReset?: () => void;
+  filteredPlaces?: Place[];
+  selectedPlace?: Place | null;
+  onPlaceSelect?: (place: Place) => void;
 }
 
-export default function Filters({ filters, onChange, onReset }: FiltersProps) {
+export default function Filters({ filters, onChange, onReset, filteredPlaces = [], selectedPlace, onPlaceSelect }: FiltersProps) {
   const t = useTranslations();
   const locale = useLocale();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
+  const [radiusInput, setRadiusInput] = useState<string>(String(filters.radius ?? 2000));
+  const [ratingInput, setRatingInput] = useState<string>(String(filters.rating_min ?? 0));
 
   // Sync localFilters with filters prop when it changes
   useEffect(() => {
     setLocalFilters(filters);
+    setRadiusInput(String(filters.radius ?? 2000));
+    setRatingInput(String(filters.rating_min ?? 0));
   }, [filters]);
 
   const handleChange = (key: keyof FilterParams, value: any) => {
@@ -62,11 +71,11 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
   const commonCategories = ['餐廳', '咖啡廳', '小吃', '夜市', '速食', '日式', '中式', '西式'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Distance Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.maxDistance')}
           </h3>
           <div className="space-y-2">
@@ -76,22 +85,51 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               max="5000"
               step="100"
               value={localFilters.radius || 2000}
-              onChange={(e) => handleChange('radius', parseInt(e.target.value))}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                setRadiusInput(String(value));
+                handleChange('radius', value);
+              }}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              {localFilters.radius || 2000} m
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={radiusInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRadiusInput(value);
+                  const parsed = parseInt(value);
+                  if (!Number.isNaN(parsed)) {
+                    const clampedValue = Math.max(100, Math.min(5000, parsed));
+                    handleChange('radius', clampedValue);
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseInt(radiusInput);
+                  const fallback = 2000;
+                  const clamped = Number.isNaN(parsed)
+                    ? fallback
+                    : Math.max(100, Math.min(5000, parsed));
+                  setRadiusInput(String(clamped));
+                  handleChange('radius', clamped);
+                }}
+                className="w-20 px-2 py-1 border border-divider rounded text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
+              <span className="text-sm font-medium text-text-primary">m</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Rating Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.minRating')}
           </h3>
           <div className="space-y-2">
@@ -99,24 +137,54 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               type="range"
               min="0"
               max="5"
-              step="0.5"
+              step="0.1"
               value={localFilters.rating_min || 0}
-              onChange={(e) => handleChange('rating_min', parseFloat(e.target.value))}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setRatingInput(String(value));
+                handleChange('rating_min', value);
+              }}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              Rating ≥ {localFilters.rating_min || 0}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-text-primary">Rating ≥</span>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={ratingInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRatingInput(value);
+                  const parsed = parseFloat(value);
+                  if (!Number.isNaN(parsed)) {
+                    const clampedValue = Math.max(0, Math.min(5, parsed));
+                    handleChange('rating_min', clampedValue);
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseFloat(ratingInput);
+                  const fallback = 0;
+                  const clamped = Number.isNaN(parsed)
+                    ? fallback
+                    : Math.max(0, Math.min(5, parsed));
+                  setRatingInput(String(clamped));
+                  handleChange('rating_min', clamped);
+                }}
+                className="w-20 px-2 py-1 border border-divider rounded text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Price Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.price')}
           </h3>
           <select
@@ -132,12 +200,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Categories Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.categories')}
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -145,7 +213,7 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               <button
                 key={cat}
                 onClick={() => handleCategoryToggle(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                className={`px-3 py-1 md:px-4 md:py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   localFilters.categories?.includes(cat)
                     ? 'bg-primary-600 text-white shadow-sm hover:bg-primary-700'
                     : 'bg-white text-text-secondary border border-divider hover:border-primary-600 hover:text-primary-600'
@@ -158,12 +226,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Features Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.features')}
           </h3>
           <div className="space-y-2">
@@ -182,15 +250,43 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Reset Button */}
       <button
         onClick={resetFilters}
-        className="w-full px-4 py-2.5 bg-white text-text-secondary border border-divider rounded-xl font-medium hover:bg-gray-50 hover:border-primary-600 hover:text-primary-600 transition-all shadow-sm"
+        className="w-full px-4 py-2 md:py-2.5 bg-white text-text-secondary border border-divider rounded-xl font-medium hover:bg-gray-50 hover:border-primary-600 hover:text-primary-600 transition-all shadow-sm text-sm md:text-base"
       >
         {t('common.reset')}
       </button>
+
+      {/* Filtered Places List */}
+      <div className="border-t border-divider pt-4 md:pt-6 mt-4 md:mt-6">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3 md:mb-4">
+          {t('filters.filteredResults')} ({filteredPlaces.length})
+        </h3>
+        <div className="space-y-3 md:space-y-4">
+          {filteredPlaces.length === 0 ? (
+            <div className="text-sm text-text-secondary text-center py-4">
+              {t('common.noResults')}
+            </div>
+          ) : (
+            filteredPlaces.map((place) => (
+              <div
+                key={place.id}
+                onClick={() => onPlaceSelect?.(place)}
+                className={`cursor-pointer transition-all duration-200 ${
+                  selectedPlace?.id === place.id
+                    ? 'ring-2 ring-primary-600 rounded-lg'
+                    : 'hover:shadow-md'
+                }`}
+              >
+                <PlaceCard place={place} />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

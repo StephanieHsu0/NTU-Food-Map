@@ -18,7 +18,8 @@
     "notFoundDescription": "您要尋找的頁面不存在",
     "backToHome": "返回首頁",
     "googleMapsTimeout": "Google Maps API 載入超時。請重新整理頁面。",
-    "googleMapsLoadError": "無法載入 Google Maps API"
+    "googleMapsLoadError": "無法載入 Google Maps API",
+    "cancel": "取消"
   },
   "map": {
     "title": "台大美食地圖",
@@ -33,7 +34,9 @@
     "clickToSelectCenter": "點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選",
     "selectedLocation": "已選擇位置",
     "distanceFromBasePoint": "距離基準點",
-    "viewRoute": "查看路徑"
+    "viewRoute": "查看路徑",
+    "searchBasePoint": "搜尋地點作為基準點...",
+    "basePointLocked": "基準點已鎖定，點擊重置或使用搜尋來更改"
   },
   "filters": {
     "title": "篩選條件",
@@ -59,6 +62,7 @@
     "features": "特色",
     "openNow": "僅顯示營業中",
     "internationalFriendly": "外籍生友善",
+    "filteredResults": "篩選結果",
     "categoryNames": {
       "餐廳": "餐廳",
       "咖啡廳": "咖啡廳",
@@ -127,23 +131,39 @@
       "features": {
         "title": "功能使用說明",
         "content": [
-          "1. 點擊地圖上的位置設定基準點（點A），系統會以此點為中心搜尋附近的餐廳",
-          "2. 使用左側篩選器設定搜尋條件：距離、評分、價位、類別等",
-          "3. 點選篩選結果中的餐廳（點B）可查看詳情，基準點不會改變",
-          "4. 在餐廳詳情中點擊「查看附近餐廳」按鈕，才會將基準點改為該餐廳",
-          "5. 點擊「重置」按鈕可清除所有設定並重新開始"
+          "1. 設定基準點（點A）：",
+          "   • 在搜尋框中輸入地點名稱或地址來搜尋並設定基準點",
+          "   • 或在地圖上點擊位置來設定基準點（僅在未設定基準點時可用）",
+          "   • 基準點設定後會被鎖定，不會因誤點地圖而改變",
+          "2. 使用左側篩選器設定搜尋條件：",
+          "   • 最大距離：可拖動滑桿或直接在輸入框中輸入數值（100-5000 公尺）",
+          "   • 最低評分：可拖動滑桿或直接在輸入框中輸入數值（0-5 分，支援小數點）",
+          "   • 價位：選擇最高可接受的價位等級",
+          "   • 類別：選擇餐廳類型（可多選）",
+          "   • 特色：選擇特殊需求（如僅顯示營業中）",
+          "3. 查看篩選結果：",
+          "   • 篩選後的餐廳會顯示在地圖上，並在左下角顯示餐廳清單",
+          "   • 點選餐廳標記或清單中的餐廳可查看詳細資訊",
+          "   • 點選餐廳不會改變基準點",
+          "4. 更改基準點：",
+          "   • 在餐廳詳情中點擊「查看附近餐廳」按鈕，會將基準點改為該餐廳",
+          "   • 或使用搜尋框搜尋新地點來設定基準點",
+          "   • 點擊「重置」按鈕可清除所有設定（包括基準點）並重新開始",
+          "5. 其他功能：",
+          "   • 食物轉盤：從篩選後的餐廳中隨機選擇",
+          "   • 點擊地圖空白處可關閉餐廳資訊視窗"
         ]
       },
       "design": {
         "title": "設計說明",
         "priceStandard": {
           "title": "價位標準",
-          "content": "價位等級根據 Google Places API 的 price_level 設定：",
+          "content": "價位等級根據 Google Places API 的 price_level 設定，地圖上的標記顏色也會對應不同價位：",
           "levels": {
-            "1": "$ - 平價：通常為小吃、路邊攤等，平均消費約 100 元以下",
-            "2": "$$ - 中等：一般餐廳、咖啡廳等，平均消費約 100-300 元",
-            "3": "$$$ - 較貴：中高檔餐廳，平均消費約 300-600 元",
-            "4": "$$$$ - 昂貴：高檔餐廳，平均消費約 600 元以上"
+            "1": "$ - 平價（綠色標記 🟢）：通常為小吃、路邊攤等，平均消費約 100 元以下",
+            "2": "$$ - 中等（黃色標記 🟡）：一般餐廳、咖啡廳等，平均消費約 100-300 元",
+            "3": "$$$ - 較貴（橙色標記 🟠）：中高檔餐廳，平均消費約 300-600 元",
+            "4": "$$$$ - 昂貴（紅色標記 🔴）：高檔餐廳，平均消費約 600 元以上"
           }
         },
         "ratingStandard": {
@@ -200,6 +220,71 @@
     "saveNote": "儲存備註",
     "noFavorites": "尚無收藏",
     "favorited": "已收藏"
+  },
+  "profile": {
+    "title": "個人資料",
+    "editButton": "編輯資料",
+    "cancelEdit": "取消",
+    "editTitle": "編輯個人資料",
+    "stats": {
+      "comments": "留言",
+      "favorites": "收藏"
+    },
+    "tabs": {
+      "comments": "我的留言",
+      "favorites": "我的收藏"
+    },
+    "error": {
+      "loading": "載入個人資料失敗"
+    },
+    "edit": {
+      "name": "姓名",
+      "email": "電子郵件",
+      "save": "儲存",
+      "saving": "儲存中...",
+      "cancel": "取消",
+      "nameRequired": "姓名為必填",
+      "nameTooLong": "姓名長度不能超過 50 個字元",
+      "nameLengthWarning": "姓名已接近長度限制",
+      "emailRequired": "電子郵件為必填",
+      "invalidEmail": "電子郵件格式錯誤",
+      "saveFailed": "儲存失敗",
+      "emailOAuthHint": "OAuth 帳號的電子郵件無法修改"
+    },
+    "avatar": {
+      "selectFile": "選擇圖片",
+      "upload": "上傳",
+      "uploading": "上傳中...",
+      "uploadFailed": "上傳失敗",
+      "invalidType": "檔案類型錯誤，僅支援圖片格式。",
+      "fileTooLarge": "檔案大小超過 5MB 限制。",
+      "hint": "最大檔案大小：5MB。支援格式：JPEG、PNG、WebP、GIF",
+      "alt": "使用者頭像",
+      "placeholder": "？",
+      "uploadFile": "上傳檔案",
+      "pasteUrl": "貼上網址",
+      "urlPlaceholder": "輸入圖片網址（例如：https://example.com/image.jpg）",
+      "urlHint": "貼上網路上的圖片網址",
+      "applyUrl": "套用網址",
+      "invalidUrl": "網址格式錯誤",
+      "urlRequired": "請輸入圖片網址",
+      "urlMustStartWithHttp": "網址必須以 http:// 或 https:// 開頭",
+      "imageLoadFailed": "無法從此網址載入圖片。請確認網址是否正確且圖片可正常存取。",
+      "invalidImageUrl": "無法從此網址載入圖片",
+      "preview": "預覽"
+    },
+    "comments": {
+      "noComments": "您尚未對任何店家留言。",
+      "edited": "已編輯",
+      "loadMore": "載入更多",
+      "unknownPlace": "未知店家"
+    },
+    "favorites": {
+      "noFavorites": "您尚未收藏任何店家。",
+      "note": "備註",
+      "addedOn": "加入時間",
+      "loadingPlace": "載入店家資訊"
+    }
   }
 }
 
