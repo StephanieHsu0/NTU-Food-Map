@@ -74,16 +74,23 @@ export function MongoDBAdapter(): Adapter {
       try {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
+        console.log('[MongoDBAdapter.getUserByAccount] query', { provider, providerAccountId });
         const account = await accountsCollection.findOne({
           provider,
           providerAccountId,
         });
-        if (!account) return null;
+        if (!account) {
+          console.warn('[MongoDBAdapter.getUserByAccount] account not found', { provider, providerAccountId });
+          return null;
+        }
         
         const usersCollection = db.collection('users');
         const userId = typeof account.userId === 'string' ? new ObjectId(account.userId) : account.userId;
         const user = await usersCollection.findOne({ _id: userId });
-        if (!user) return null;
+        if (!user) {
+          console.error('[MongoDBAdapter.getUserByAccount] user not found for account', { provider, providerAccountId, userId: account.userId });
+          return null;
+        }
         return {
           id: user._id.toString(),
           name: user.name,
@@ -137,6 +144,30 @@ export function MongoDBAdapter(): Adapter {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
         const userId = typeof account.userId === 'string' ? new ObjectId(account.userId) : account.userId;
+        // Prevent linking the same providerAccountId to a different user
+        const existing = await accountsCollection.findOne({
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        });
+        if (existing) {
+          const existingUserId = typeof existing.userId === 'string' ? existing.userId.toString() : existing.userId.toHexString();
+          const incomingUserId = typeof userId === 'string' ? userId : (userId as any).toHexString();
+          if (existingUserId !== incomingUserId) {
+            console.error('[MongoDBAdapter.linkAccount] providerAccountId already linked to another user', {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              existingUserId,
+              incomingUserId,
+            });
+            throw new Error('Account already linked to another user');
+          }
+          console.log('[MongoDBAdapter.linkAccount] account already linked to same user, skipping insert', {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            userId: incomingUserId,
+          });
+          return account;
+        }
         await accountsCollection.insertOne({
           userId: userId,
           type: account.type,

@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin('./i18n.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['maps.googleapis.com', 'lh3.googleusercontent.com'],
+    domains: ['maps.googleapis.com', 'lh3.googleusercontent.com', 'profile.line-scdn.net'],
   },
   // Disable static optimization for dynamic routes to avoid window is not defined errors
   experimental: {

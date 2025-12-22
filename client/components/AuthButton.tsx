@@ -14,6 +14,7 @@ export default function AuthButton() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [userImage, setUserImage] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -34,12 +35,16 @@ export default function AuthButton() {
           if (data.image) {
             setUserImage(data.image);
           }
+          if (data.name) {
+            setProfileName(data.name);
+          }
         })
         .catch(() => {
           // Silently fail - will show initial instead
         });
     } else {
       setUserImage(null);
+      setProfileName(null);
     }
   }, [session]);
 
@@ -52,9 +57,13 @@ export default function AuthButton() {
   }
 
   if (session?.user) {
+    const displayName =
+      profileName ||
+      session.user.name ||
+      session.user.email ||
+      '';
     const initial =
-      session.user.name?.charAt(0).toUpperCase() ||
-      session.user.email?.charAt(0).toUpperCase() ||
+      displayName?.charAt(0).toUpperCase() ||
       '?';
 
     return (
@@ -75,7 +84,7 @@ export default function AuthButton() {
             <span className="text-xs md:text-sm font-semibold text-text-primary flex-shrink-0">{initial}</span>
           )}
           <span className="md:hidden text-xs text-text-primary font-medium truncate max-w-[80px]">
-            {session.user.name?.split(' ')[0] || session.user.name || t('auth.signedIn')}
+            {displayName?.split(' ')[0] || t('auth.signedIn')}
           </span>
         </button>
 
@@ -83,9 +92,9 @@ export default function AuthButton() {
           <div className="absolute right-0 mt-2 w-56 rounded-xl border border-divider bg-white shadow-md z-50">
             <div className="px-4 py-3 min-w-0">
               <p className="text-sm font-semibold text-text-primary break-words overflow-wrap-anywhere">
-                {session.user.name || t('auth.signedIn')}
+                {displayName || t('auth.signedIn')}
               </p>
-              {session.user.email && (
+              {(session.user.email || null) && (
                 <p className="text-xs text-text-secondary mt-1 break-words overflow-wrap-anywhere">
                   {session.user.email}
                 </p>
