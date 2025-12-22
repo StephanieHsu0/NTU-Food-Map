@@ -99,12 +99,13 @@ export async function GET(
         } else {
           console.warn(`[Places API] Google Places API returned null for place ${id}`);
           // Return minimal place object even if Google Places API returns null
+          // Use empty strings instead of null to match Place type definition
           const minimalPlace: Place = {
             id: id,
-            name_zh: null,
-            name_en: null,
-            address_zh: null,
-            address_en: null,
+            name_zh: '',
+            name_en: '',
+            address_zh: '',
+            address_en: '',
             lat: lat,
             lng: lng,
             distance_m: 0,
@@ -120,12 +121,13 @@ export async function GET(
         console.error(`[Places API] Error fetching place ${id} from Google Places API:`, googleError);
         // Even if Google Places API fails, return a minimal place object so the frontend can display something
         // This allows the link to work even if we can't get the full details
+        // Use empty strings instead of null to match Place type definition
         const minimalPlace: Place = {
           id: id,
-          name_zh: null,
-          name_en: null,
-          address_zh: null,
-          address_en: null,
+          name_zh: '',
+          name_en: '',
+          address_zh: '',
+          address_en: '',
           lat: lat,
           lng: lng,
           distance_m: 0,

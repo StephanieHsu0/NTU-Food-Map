@@ -53,32 +53,34 @@ export default function UserCommentsList({ userId }: UserCommentsListProps) {
       // This works correctly (same method as place detail page)
       const commentsWithPlaceNames = await Promise.all(
         commentsData.map(async (comment: Comment) => {
-          // If place name is missing and it looks like a Google Places ID, fetch using JavaScript API
-          if ((!comment.place_name_zh && !comment.place_name_en) && 
+          // If place name is missing (null, undefined, or empty string) and it looks like a Google Places ID, fetch using JavaScript API
+          const hasPlaceName = comment.place_name_zh?.trim() || comment.place_name_en?.trim();
+          if (!hasPlaceName && 
               (comment.place_id.startsWith('ChIJ') || comment.place_id.startsWith('ChlJ') || comment.place_id.length > 20)) {
             try {
-              // Wait for Google Maps API to be loaded
-              if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-                const placeData = await getPlaceDetails(comment.place_id, 25.0170, 121.5395);
-                if (placeData && (placeData.name_zh || placeData.name_en)) {
-                  return {
-                    ...comment,
-                    place_name_zh: placeData.name_zh || placeData.name_en || null,
-                    place_name_en: placeData.name_en || placeData.name_zh || null,
-                  };
-                }
-              } else {
-                // If Google Maps API not loaded yet, wait a bit and try again
-                await new Promise(resolve => setTimeout(resolve, 1000));
+              // Wait for Google Maps API to be loaded (with retries)
+              let retries = 0;
+              const maxRetries = 5;
+              while (retries < maxRetries) {
                 if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-                  const placeData = await getPlaceDetails(comment.place_id, 25.0170, 121.5395);
-                  if (placeData && (placeData.name_zh || placeData.name_en)) {
-                    return {
-                      ...comment,
-                      place_name_zh: placeData.name_zh || placeData.name_en || null,
-                      place_name_en: placeData.name_en || placeData.name_zh || null,
-                    };
+                  try {
+                    const placeData = await getPlaceDetails(comment.place_id, 25.0170, 121.5395);
+                    if (placeData && (placeData.name_zh || placeData.name_en)) {
+                      return {
+                        ...comment,
+                        place_name_zh: placeData.name_zh || placeData.name_en || null,
+                        place_name_en: placeData.name_en || placeData.name_zh || null,
+                      };
+                    }
+                    break; // Successfully called API, even if no name returned
+                  } catch (apiError) {
+                    console.warn(`Google Places API call failed for ${comment.place_id}:`, apiError);
+                    break; // Don't retry if API call itself failed
                   }
+                } else {
+                  // Wait a bit before retrying
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  retries++;
                 }
               }
             } catch (error) {
