@@ -26,7 +26,77 @@ export async function GET(
     const db = await connectToDatabase();
     const placesCollection = db.collection<PlaceDocument>('places');
 
-    const doc = await placesCollection.findOne({ id });
+    let doc = await placesCollection.findOne({ id });
+
+    // If not found in database and it looks like a Google Places ID, try Google Places API
+    if (!doc && (id.startsWith('ChIJ') || id.startsWith('ChlJ') || id.length > 20)) {
+      console.log(`Place ${id} not found in database, trying Google Places API...`);
+      const { getFullPlaceDetailsFromGoogle } = await import('@/lib/googlePlacesServer');
+      const googlePlace = await getFullPlaceDetailsFromGoogle(id, lat, lng);
+      
+      if (googlePlace) {
+        // Convert Google Places API response to Place format
+        const placeTypes = googlePlace.types || [];
+        const foodRelatedTypes = ['restaurant', 'food', 'cafe', 'meal_takeaway', 'bakery', 'bar', 'meal_delivery'];
+        const categories = placeTypes
+          .filter((type: string) => 
+            foodRelatedTypes.some((foodType) => type.includes(foodType)) ||
+            type.includes('restaurant') ||
+            type.includes('food')
+          )
+          .slice(0, 5);
+
+        // Convert opening hours
+        const openHours: { [key: string]: string[] } = {};
+        if (googlePlace.opening_hours?.weekday_text) {
+          googlePlace.opening_hours.weekday_text.forEach((text: string) => {
+            const match = text.match(/^([^:]+):\s*(.+)$/);
+            if (match) {
+              const day = match[1];
+              const hours = match[2].split(',').map((h: string) => h.trim());
+              openHours[day] = hours;
+            }
+          });
+        }
+
+        // Convert price level (Google uses 0-4, we use 1-4)
+        const priceLevel = googlePlace.price_level === 0 ? 1 : (googlePlace.price_level || 4);
+
+        const place: Place = {
+          id: googlePlace.place_id,
+          name_zh: googlePlace.name || '',
+          name_en: googlePlace.name || '', // Could fetch with language=en if needed
+          address_zh: googlePlace.formatted_address || '',
+          address_en: googlePlace.formatted_address || '',
+          phone: googlePlace.formatted_phone_number || undefined,
+          price_level: priceLevel,
+          rating: googlePlace.rating || 0,
+          rating_count: googlePlace.user_ratings_total || 0,
+          lat: googlePlace.geometry?.location?.lat || lat,
+          lng: googlePlace.geometry?.location?.lng || lng,
+          categories: categories,
+          features: [],
+          open_hours: Object.keys(openHours).length > 0 ? openHours : undefined,
+          photos: googlePlace.photos?.slice(0, 5).map((photo: any) => 
+            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY}`
+          ) || undefined,
+          website: googlePlace.website || undefined,
+          distance_m: Math.round(calculateDistance(
+            lat,
+            lng,
+            googlePlace.geometry?.location?.lat || lat,
+            googlePlace.geometry?.location?.lng || lng
+          )),
+        };
+
+        // Calculate recommendation score
+        const { score, breakdown } = calculateScore(place, lat, lng);
+        place.score = score;
+        place.score_breakdown = breakdown;
+
+        return NextResponse.json(place);
+      }
+    }
 
     if (!doc) {
       return NextResponse.json(
