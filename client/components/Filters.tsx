@@ -62,11 +62,11 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
   const commonCategories = ['餐廳', '咖啡廳', '小吃', '夜市', '速食', '日式', '中式', '西式'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Distance Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.maxDistance')}
           </h3>
           <div className="space-y-2">
@@ -86,12 +86,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Rating Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.minRating')}
           </h3>
           <div className="space-y-2">
@@ -111,12 +111,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Price Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.price')}
           </h3>
           <select
@@ -132,12 +132,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Categories Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.categories')}
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -145,7 +145,7 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
               <button
                 key={cat}
                 onClick={() => handleCategoryToggle(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                className={`px-3 py-1 md:px-4 md:py-1.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   localFilters.categories?.includes(cat)
                     ? 'bg-primary-600 text-white shadow-sm hover:bg-primary-700'
                     : 'bg-white text-text-secondary border border-divider hover:border-primary-600 hover:text-primary-600'
@@ -158,12 +158,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Features Section */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-2 md:mb-3">
             {t('filters.features')}
           </h3>
           <div className="space-y-2">
@@ -182,12 +182,12 @@ export default function Filters({ filters, onChange, onReset }: FiltersProps) {
         </div>
       </div>
 
-      <div className="border-t border-divider pt-6"></div>
+      <div className="border-t border-divider pt-4 md:pt-6"></div>
 
       {/* Reset Button */}
       <button
         onClick={resetFilters}
-        className="w-full px-4 py-2.5 bg-white text-text-secondary border border-divider rounded-xl font-medium hover:bg-gray-50 hover:border-primary-600 hover:text-primary-600 transition-all shadow-sm"
+        className="w-full px-4 py-2 md:py-2.5 bg-white text-text-secondary border border-divider rounded-xl font-medium hover:bg-gray-50 hover:border-primary-600 hover:text-primary-600 transition-all shadow-sm text-sm md:text-base"
       >
         {t('common.reset')}
       </button>

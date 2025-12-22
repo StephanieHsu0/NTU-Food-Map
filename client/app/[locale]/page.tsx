@@ -221,17 +221,19 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-background">
-      <div className="w-1/3 border-r border-divider bg-white overflow-y-auto">
-        <div className="p-6 border-b border-divider bg-white">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-text-primary">{t('filters.title')}</h2>
+    <div className="flex flex-col md:flex-row h-[calc(100vh-80px)] bg-background">
+      {/* Sidebar: Full width on mobile, 1/3 width on tablet/desktop */}
+      <div className="w-full md:w-1/3 border-r border-divider bg-white flex flex-col h-[50vh] md:h-auto md:overflow-y-auto">
+        {/* Filters Section */}
+        <div className="p-4 md:p-6 border-b border-divider bg-white flex-shrink-0 overflow-y-auto">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-lg md:text-xl font-semibold text-text-primary">{t('filters.title')}</h2>
             <button
               onClick={() => setRouletteModalOpen(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2 text-sm md:text-base"
             >
-              <span className="text-lg">🎰</span>
-              <span>{t('roulette.title')}</span>
+              <span className="text-base md:text-lg">🎰</span>
+              <span className="hidden sm:inline">{t('roulette.title')}</span>
             </button>
           </div>
           {useGooglePlaces && !basePoint && (
@@ -254,15 +256,19 @@ export default function HomePage() {
             onReset={handleReset}
           />
         </div>
-        <Sidebar
-          places={filteredPlaces}
-          selectedPlace={selectedPlace}
-          onPlaceSelect={handlePlaceSelect}
-          loading={loading}
-          error={error}
-        />
+        {/* Places List */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <Sidebar
+            places={filteredPlaces}
+            selectedPlace={selectedPlace}
+            onPlaceSelect={handlePlaceSelect}
+            loading={loading}
+            error={error}
+          />
+        </div>
       </div>
-      <div className="flex-1 relative bg-background">
+      {/* Map: Full width on mobile, 2/3 width on tablet/desktop */}
+      <div className="w-full md:flex-1 relative bg-background h-[50vh] md:h-auto flex-shrink-0">
         <Map
           places={filteredPlaces}
           selectedPlace={selectedPlace}

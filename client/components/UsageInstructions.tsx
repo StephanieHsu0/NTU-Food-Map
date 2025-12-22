@@ -11,7 +11,7 @@ export default function UsageInstructions() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-9 h-9 rounded-full border border-divider bg-white text-text-secondary hover:text-primary-600 hover:border-primary-200 shadow-sm hover:shadow-md transition-all flex items-center justify-center text-sm font-semibold"
+        className="px-3 py-1.5 md:w-9 md:h-9 md:px-0 md:py-0 rounded-lg md:rounded-full border border-divider bg-white text-text-secondary hover:text-primary-600 hover:border-primary-200 shadow-sm hover:shadow-md transition-all flex items-center justify-center text-sm font-semibold"
         aria-label={t('usageInstructions.button')}
       >
         ?

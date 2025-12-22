@@ -45,7 +45,7 @@ export default function AuthButton() {
 
   if (status === 'loading') {
     return (
-      <div className="px-4 py-2 bg-white text-text-secondary rounded-xl border border-divider">
+      <div className="px-3 py-1.5 md:px-4 md:py-2 bg-white text-text-secondary rounded-lg md:rounded-xl border border-divider text-xs md:text-sm">
         {t('auth.loading')}
       </div>
     );
@@ -61,7 +61,7 @@ export default function AuthButton() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setOpen((prev) => !prev)}
-          className="w-9 h-9 rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all"
+          className="px-3 py-1.5 md:w-9 md:h-9 md:px-0 md:py-0 rounded-lg md:rounded-full border border-divider bg-white shadow-sm hover:shadow-md flex items-center justify-center overflow-hidden transition-all gap-1.5 md:gap-0"
         >
           {userImage ? (
             <Image
@@ -69,11 +69,14 @@ export default function AuthButton() {
               alt={session.user.name || 'User'}
               width={36}
               height={36}
-              className="rounded-full object-cover"
+              className="rounded-full object-cover w-5 h-5 md:w-9 md:h-9 flex-shrink-0"
             />
           ) : (
-            <span className="text-sm font-semibold text-text-primary">{initial}</span>
+            <span className="text-xs md:text-sm font-semibold text-text-primary flex-shrink-0">{initial}</span>
           )}
+          <span className="md:hidden text-xs text-text-primary font-medium truncate max-w-[80px]">
+            {session.user.name?.split(' ')[0] || session.user.name || t('auth.signedIn')}
+          </span>
         </button>
 
         {open && (
@@ -120,7 +123,7 @@ export default function AuthButton() {
       onClick={() => {
         router.push(`/${locale}/auth/signin`);
       }}
-      className="px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md"
+      className="px-3 py-1.5 md:px-4 md:py-2 bg-primary-600 text-white rounded-lg md:rounded-xl hover:bg-primary-700 transition-all font-medium shadow-sm hover:shadow-md text-xs md:text-sm"
     >
       {t('auth.signIn')}
     </button>

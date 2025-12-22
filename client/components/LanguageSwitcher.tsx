@@ -33,11 +33,11 @@ export default function LanguageSwitcher({ currentLocale }: { currentLocale: str
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="px-3 py-2 rounded-xl text-sm font-medium transition-all bg-white border border-divider text-text-primary shadow-sm hover:shadow-md flex items-center gap-2"
+        className="px-3 py-1.5 md:px-3 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-medium transition-all bg-white border border-divider text-text-primary shadow-sm hover:shadow-md flex items-center gap-1.5 md:gap-2"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span aria-hidden>🌐</span>
+        <span aria-hidden className="text-sm md:text-base">🌐</span>
         <span>{label}</span>
         <span className="text-xs text-text-secondary">▾</span>
       </button>

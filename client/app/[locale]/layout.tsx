@@ -32,14 +32,14 @@ export default async function LocaleLayout({
       <Providers>
         <div className="min-h-screen bg-background">
           <header className="bg-white shadow-sm border-b border-divider">
-            <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4 w-full">
-              <div className="flex items-center gap-6">
-                <Link href={`/${locale}`} className="text-2xl font-bold text-text-primary hover:text-primary-600 transition-colors">
+            <div className="px-3 sm:px-6 lg:px-8 py-3 md:py-4 flex justify-between items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-center gap-3 md:gap-6 min-w-0 flex-1">
+                <Link href={`/${locale}`} className="text-lg md:text-2xl font-bold text-text-primary hover:text-primary-600 transition-colors truncate">
                   NTU Food Map
                 </Link>
                 
               </div>
-              <div className="ml-auto flex items-center gap-4">
+              <div className="ml-auto flex items-center gap-2 md:gap-4 flex-shrink-0">
                 <UsageInstructions />
                 <AuthButton />
                 <LanguageSwitcher currentLocale={locale} />
