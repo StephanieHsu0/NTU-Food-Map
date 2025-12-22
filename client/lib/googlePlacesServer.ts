@@ -116,7 +116,18 @@ export async function getFullPlaceDetailsFromGoogle(
     if (data.status === 'OK' && data.result) {
       return data.result;
     } else {
-      console.warn(`Google Places API returned status: ${data.status} for place ${placeId}`);
+      console.warn(`[Google Places API] Status: ${data.status} for place ${placeId}`);
+      if (data.status === 'REQUEST_DENIED') {
+        const errorMessage = (data as any).error_message || 'No error message';
+        console.error(`[Google Places API] ❌ Request denied. Error: ${errorMessage}`);
+        console.error(`[Google Places API] 可能的原因：`);
+        console.error(`  1. API key 未啟用 Places API`);
+        console.error(`  2. API key 的 Application restrictions 設定為 HTTP referrers（阻止伺服器端調用）`);
+        console.error(`  3. 需要啟用 Places API (New) 而不是舊的 Places API`);
+        console.error(`  解決方案：`);
+        console.error(`  - 創建新的伺服器端 API key，設定 Application restrictions 為 None 或 IP 限制`);
+        console.error(`  - 或在 .env.local 中設定 GOOGLE_PLACES_API_KEY（使用無限制的 key）`);
+      }
       return null;
     }
   } catch (error) {
