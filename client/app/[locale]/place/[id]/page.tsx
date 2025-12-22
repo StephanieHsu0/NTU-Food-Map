@@ -35,11 +35,16 @@ export default function PlaceDetailPage() {
 
   // Static libraries array to avoid reload warning
   const libraries = useMemo<("places")[]>(() => ['places'], []);
+  
+  // Map language based on locale: 'zh' -> 'zh-TW', 'en' -> 'en'
+  // Must match Map.tsx to avoid LoadScript conflicts
+  const mapLanguage = locale === 'zh' ? 'zh-TW' : 'en';
 
   const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey,
     libraries,
+    language: mapLanguage, // Add language to match Map.tsx
   });
 
   useEffect(() => {
