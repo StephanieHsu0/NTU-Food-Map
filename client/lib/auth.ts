@@ -163,7 +163,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Use user data from database (already fetched by adapter)
         // DO NOT set image in session - it can be very long
         session.user.name = user.name || null;
-        session.user.email = user.email || null;
+        if (user.email) {
+          session.user.email = user.email;
+        }
         session.user.image = null; // Always null to prevent HTTP 431
       }
       return session;

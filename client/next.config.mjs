@@ -19,16 +19,6 @@ const nextConfig = {
         fs: false,
       };
     }
-    // Ensure next-auth/react is properly resolved
-    try {
-      const nextAuthReactPath = require.resolve('next-auth/react');
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'next-auth/react': nextAuthReactPath,
-      };
-    } catch (e) {
-      console.warn('Could not resolve next-auth/react:', e);
-    }
     // Fix for @formatjs module resolution
     config.resolve.extensionAlias = {
       '.js': ['.js', '.ts', '.tsx'],
