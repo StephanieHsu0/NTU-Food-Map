@@ -102,14 +102,14 @@ export default function Filters({ filters, onChange, onReset, filteredPlaces = [
                   const value = e.target.value;
                   setRadiusInput(value);
                   const parsed = parseInt(value);
-                  if (!Number.isNaN(parsed)) {
-                    const clampedValue = Math.max(100, Math.min(5000, parsed));
-                    handleChange('radius', clampedValue);
+                  // 允許清空；僅當輸入在合法範圍內時才即時同步，避免中途被強制跳到 100
+                  if (!Number.isNaN(parsed) && parsed >= 100 && parsed <= 5000) {
+                    handleChange('radius', parsed);
                   }
                 }}
                 onBlur={() => {
                   const parsed = parseInt(radiusInput);
-                  const fallback = 2000;
+                  const fallback = localFilters.radius ?? 2000;
                   const clamped = Number.isNaN(parsed)
                     ? fallback
                     : Math.max(100, Math.min(5000, parsed));

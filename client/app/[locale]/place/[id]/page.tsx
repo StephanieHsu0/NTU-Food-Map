@@ -17,6 +17,7 @@ export default function PlaceDetailPage() {
   const router = useRouter();
   const t = useTranslations();
   const locale = params.locale as string;
+  const mapLanguage = locale === 'zh' ? 'zh-TW' : 'en';
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +38,11 @@ export default function PlaceDetailPage() {
   const libraries = useMemo<("places")[]>(() => ['places'], []);
 
   const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
+    // Keep the same loader id/options as map to avoid mismatch errors
     id: 'google-map-script',
     googleMapsApiKey,
     libraries,
+    language: mapLanguage,
   });
 
   useEffect(() => {
