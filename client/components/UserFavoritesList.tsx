@@ -43,12 +43,15 @@ export default function UserFavoritesList({ userId }: UserFavoritesListProps) {
       setFavorites(favoritesData);
 
       // Load place details for each favorite
+      // The API route will automatically fetch from Google Places API if not in database
       const placePromises = favoritesData.map(async (fav: Favorite) => {
         try {
           const placeResponse = await fetch(`/api/places/${fav.place_id}`);
           if (placeResponse.ok) {
             const placeData = await placeResponse.json();
             return { placeId: fav.place_id, place: placeData };
+          } else {
+            console.warn(`Failed to load place ${fav.place_id}: ${placeResponse.status} ${placeResponse.statusText}`);
           }
         } catch (error) {
           console.error(`Error loading place ${fav.place_id}:`, error);
