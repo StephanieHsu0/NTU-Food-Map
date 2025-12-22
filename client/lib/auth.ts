@@ -80,10 +80,21 @@ if (lineClientId && lineClientSecret) {
           // Log minimal info for debugging cross-account issues; avoid tokens
           console.log('[LINE] profile received', {
             userId: profile?.userId,
+            sub: profile?.sub,
+            displayName: profile?.displayName,
             hasPicture: !!profile?.pictureUrl,
+            allKeys: Object.keys(profile || {}),
           });
+          // CRITICAL: Use userId as the unique identifier for LINE accounts
+          // NextAuth v5 will use profile.id as providerAccountId in the account record
+          // This must be unique per LINE user to prevent account mixing
+          const lineUserId = profile?.userId || profile?.sub;
+          if (!lineUserId) {
+            console.error('[LINE] profile missing userId and sub!', profile);
+            throw new Error('LINE profile missing user identifier');
+          }
           return {
-            id: profile.userId,
+            id: lineUserId, // This becomes providerAccountId - MUST be unique per user
             name: profile.displayName,
             email: null, // Line doesn't provide email by default
             image: profile.pictureUrl || null,
@@ -162,16 +173,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!account) return true;
 
       const provider = account.provider;
-      const providerAccountId = (account as any).providerAccountId;
+      // NextAuth v5 may store providerAccountId in different fields
+      // Try account.providerAccountId first, then account.sub, then user.id
+      const providerAccountId = (account as any).providerAccountId 
+        || (account as any).sub 
+        || (profile as any)?.userId 
+        || user?.id;
 
       console.log('[NextAuth.signIn] incoming account', {
         provider,
         providerAccountId,
         userId: user?.id,
+        accountKeys: Object.keys(account),
+        accountSub: (account as any).sub,
+        profileUserId: (profile as any)?.userId,
+        accountProviderAccountId: (account as any).providerAccountId,
       });
 
       if (!providerAccountId) {
-        console.error('[NextAuth.signIn] missing providerAccountId', { provider });
+        console.error('[NextAuth.signIn] missing providerAccountId', { 
+          provider,
+          account: Object.keys(account),
+          profile: profile ? Object.keys(profile) : null,
+        });
         return false;
       }
 
