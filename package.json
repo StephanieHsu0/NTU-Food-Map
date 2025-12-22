@@ -6,13 +6,7 @@
   "scripts": {
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
-    "dev:all": "npm run dev:client && npm run dev:server",
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
-    "build": "cd server && npm run build && cd ../client && npm run build",
-    "build:server": "cd server && npm run build",
-    "build:client": "cd client && npm run build",
-    "start:server": "cd server && npm start",
-    "start:client": "cd client && npm start"
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
   },
   "keywords": [
     "ntu",
@@ -21,9 +15,6 @@
     "recommendation"
   ],
   "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "dotenv": "^17.2.3",
-    "mongodb": "^7.0.0"
-  }
+  "license": "MIT"
 }
+
