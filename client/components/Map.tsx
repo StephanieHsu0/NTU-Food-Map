@@ -188,13 +188,19 @@ export default function Map({
       // When both basePoint and selectedPlace are present, always fit bounds to show both
       // Temporarily disable auto-adjust flag to avoid skipping view updates
       isAutoAdjustingRef.current = false;
-      // Fit both the selected place and the basePoint in view
       const bounds = new window.google.maps.LatLngBounds();
       bounds.extend(placePosition);
       bounds.extend({ lat: basePoint.lat, lng: basePoint.lng });
 
-      // Use comfortable padding to ensure both points and info window are visible
-      mapRef.current.fitBounds(bounds, { top: 100, bottom: 100, left: 100, right: 100 });
+      const padding = { top: 140, bottom: 140, left: 140, right: 140 };
+      const fitBoth = () => {
+        if (!mapRef.current) return;
+        mapRef.current.fitBounds(bounds, padding);
+      };
+
+      // Fit immediately and re-fit shortly after to avoid race with other updates
+      fitBoth();
+      setTimeout(fitBoth, 80);
     } else {
       // Only adjust zoom when not auto-adjusting radius
       if (!isAutoAdjustingRef.current) {
