@@ -196,6 +196,34 @@ export default function Filters({ filters, onChange, onReset, filteredPlaces = [
       >
         {t('common.reset')}
       </button>
+
+      {/* Filtered Places List */}
+      <div className="border-t border-divider pt-4 md:pt-6 mt-4 md:mt-6">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-secondary mb-3 md:mb-4">
+          {t('filters.filteredResults')} ({filteredPlaces.length})
+        </h3>
+        <div className="space-y-3 md:space-y-4">
+          {filteredPlaces.length === 0 ? (
+            <div className="text-sm text-text-secondary text-center py-4">
+              {t('common.noResults')}
+            </div>
+          ) : (
+            filteredPlaces.map((place) => (
+              <div
+                key={place.id}
+                onClick={() => onPlaceSelect?.(place)}
+                className={`cursor-pointer transition-all duration-200 ${
+                  selectedPlace?.id === place.id
+                    ? 'ring-2 ring-primary-600 rounded-lg'
+                    : 'hover:shadow-md'
+                }`}
+              >
+                <PlaceCard place={place} />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
