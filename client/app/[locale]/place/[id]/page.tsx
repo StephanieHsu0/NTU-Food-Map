@@ -17,7 +17,6 @@ export default function PlaceDetailPage() {
   const router = useRouter();
   const t = useTranslations();
   const locale = params.locale as string;
-  const mapLanguage = locale === 'zh' ? 'zh-TW' : 'en';
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
