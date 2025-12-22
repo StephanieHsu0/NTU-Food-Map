@@ -56,30 +56,43 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   console.warn('⚠️ Skipping Google provider - AUTH_GOOGLE_ID not set');
 }
 
-// Add Line provider - NextAuth v5 will auto-detect AUTH_LINE_ID and AUTH_LINE_SECRET
-if (process.env.AUTH_LINE_ID && process.env.AUTH_LINE_SECRET) {
-  // Use auto-detection - NextAuth will automatically read AUTH_LINE_ID and AUTH_LINE_SECRET
-  // TypeScript types may not reflect this yet, so we use type assertion
+const lineClientId = process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID || process.env.AUTH_LINE_CHANNEL_ID;
+const lineClientSecret = process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET || process.env.AUTH_LINE_CHANNEL_SECRET;
+
+// Add Line provider with explicit endpoints and profile mapping to ensure pictureUrl is captured
+if (lineClientId && lineClientSecret) {
   try {
-    providers.push(Line({} as any));
+    providers.push(
+      Line({
+        clientId: lineClientId,
+        clientSecret: lineClientSecret,
+        authorization: {
+          url: 'https://access.line.me/oauth2/v2.1/authorize',
+          params: {
+            scope: 'profile openid email',
+            response_type: 'code',
+          },
+        },
+        token: 'https://api.line.me/oauth2/v2.1/token',
+        userinfo: 'https://api.line.me/v2/profile',
+        checks: ['state'],
+        async profile(profile: any) {
+          // Log minimal info for debugging cross-account issues; avoid tokens
+          console.log('[LINE] profile received', {
+            userId: profile?.userId,
+            hasPicture: !!profile?.pictureUrl,
+          });
+          return {
+            id: profile.userId,
+            name: profile.displayName,
+            email: null, // Line doesn't provide email by default
+            image: profile.pictureUrl || null,
+          };
+        },
+      } as any)
+    );
   } catch (error) {
     console.error('❌ Failed to add Line provider:', error);
-  }
-} else if (process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID || process.env.AUTH_LINE_CHANNEL_ID) {
-  // Fallback: explicitly pass credentials for backward compatibility
-  if (process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET || process.env.AUTH_LINE_CHANNEL_SECRET) {
-    try {
-      providers.push(
-        Line({
-          clientId: process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID || process.env.AUTH_LINE_CHANNEL_ID,
-          clientSecret: process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET || process.env.AUTH_LINE_CHANNEL_SECRET,
-        })
-      );
-    } catch (error) {
-      console.error('❌ Failed to add Line provider:', error);
-    }
-  } else {
-    console.warn('⚠️ Line OAuth: AUTH_LINE_SECRET is missing');
   }
 } else {
   console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID not set');
@@ -145,28 +158,128 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (!account) return true;
+
+      const provider = account.provider;
+      const providerAccountId = (account as any).providerAccountId;
+
+      console.log('[NextAuth.signIn] incoming account', {
+        provider,
+        providerAccountId,
+        userId: user?.id,
+      });
+
+      if (!providerAccountId) {
+        console.error('[NextAuth.signIn] missing providerAccountId', { provider });
+        return false;
+      }
+
+      try {
+        const db = await connectToDatabase();
+        const accountsCollection = db.collection('accounts');
+        const existingAccount = await accountsCollection.findOne({
+          provider,
+          providerAccountId,
+        });
+
+        if (existingAccount) {
+          const existingUserId = typeof existingAccount.userId === 'string'
+            ? existingAccount.userId
+            : existingAccount.userId.toHexString();
+          const incomingUserId = (user as any)?.id;
+
+          console.log('[NextAuth.signIn] found existing account', {
+            provider,
+            providerAccountId,
+            existingUserId,
+            incomingUserId,
+          });
+
+          if (incomingUserId && existingUserId !== incomingUserId) {
+            console.error('[NextAuth.signIn] providerAccountId linked to another user. Blocking sign-in.', {
+              provider,
+              providerAccountId,
+              existingUserId,
+              incomingUserId,
+            });
+            return false;
+          }
+
+          // If user exists but name/image missing, backfill from profile
+          const usersCollection = db.collection('users');
+          const userIdObj = typeof existingAccount.userId === 'string'
+            ? new ObjectId(existingAccount.userId)
+            : existingAccount.userId;
+          const existingUser = await usersCollection.findOne({ _id: userIdObj });
+          const displayName = (profile as any)?.name || (profile as any)?.displayName || existingUser?.name;
+          const picture =
+            (profile as any)?.picture ||
+            (profile as any)?.pictureUrl ||
+            existingUser?.image;
+          const updateData: any = { updatedAt: new Date() };
+          let needUpdate = false;
+          if (!existingUser?.name && displayName) {
+            updateData.name = displayName;
+            needUpdate = true;
+          }
+          if (!existingUser?.image && picture) {
+            updateData.image = picture;
+            needUpdate = true;
+          }
+          if (needUpdate) {
+            await usersCollection.updateOne({ _id: userIdObj }, { $set: updateData });
+            console.log('[NextAuth.signIn] backfilled user profile from LINE', {
+              providerAccountId,
+              updatedName: updateData.name,
+              updatedImage: !!updateData.image,
+            });
+          }
+        } else {
+          console.log('[NextAuth.signIn] no existing account, proceed to link', {
+            provider,
+            providerAccountId,
+            incomingUserId: (user as any)?.id,
+          });
+        }
+      } catch (error) {
+        console.error('[NextAuth.signIn] error while checking account linkage', error);
+        // Allow sign-in to avoid locking users out due to transient DB errors
+        return true;
+      }
+
+      return true;
+    },
     async session({ session, user }) {
       // With database strategy, user is available directly
       if (session.user && user) {
         (session.user as any).id = user.id;
         
-        // Fetch provider from accounts collection
         try {
           const db = await connectToDatabase();
+          
+          // Fetch provider from accounts collection
           const accountsCollection = db.collection('accounts');
           const account = await accountsCollection.findOne({ userId: new ObjectId(user.id) });
           (session.user as any).provider = account?.provider || null;
+
+          // Always refresh user fields from DB to ensure latest name/image
+          const usersCollection = db.collection('users');
+          const freshUser = await usersCollection.findOne({ _id: new ObjectId(user.id) });
+
+          const safeName = freshUser?.name || user.name || user.email || user.id;
+          session.user.name = safeName || null;
+          if (freshUser?.email || user.email) {
+            session.user.email = freshUser?.email || user.email;
+          }
+          // Keep image out of session to avoid large headers; UI can fetch via profile API
+          session.user.image = null;
         } catch (error) {
-          console.error('Error fetching provider in session callback:', error);
+          console.error('Error enriching session:', error);
+          // Fallbacks to avoid breaking session
+          session.user.name = user.name || user.email || user.id;
+          session.user.image = null;
         }
-        
-        // Use user data from database (already fetched by adapter)
-        // DO NOT set image in session - it can be very long
-        session.user.name = user.name || null;
-        if (user.email) {
-          session.user.email = user.email;
-        }
-        session.user.image = null; // Always null to prevent HTTP 431
       }
       return session;
     },
