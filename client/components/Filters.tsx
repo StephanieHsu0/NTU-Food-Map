@@ -19,10 +19,14 @@ export default function Filters({ filters, onChange, onReset, filteredPlaces = [
   const t = useTranslations();
   const locale = useLocale();
   const [localFilters, setLocalFilters] = useState<FilterParams>(filters);
+  const [radiusInput, setRadiusInput] = useState<string>(String(filters.radius ?? 2000));
+  const [ratingInput, setRatingInput] = useState<string>(String(filters.rating_min ?? 0));
 
   // Sync localFilters with filters prop when it changes
   useEffect(() => {
     setLocalFilters(filters);
+    setRadiusInput(String(filters.radius ?? 2000));
+    setRatingInput(String(filters.rating_min ?? 0));
   }, [filters]);
 
   const handleChange = (key: keyof FilterParams, value: any) => {
@@ -81,11 +85,40 @@ export default function Filters({ filters, onChange, onReset, filteredPlaces = [
               max="5000"
               step="100"
               value={localFilters.radius || 2000}
-              onChange={(e) => handleChange('radius', parseInt(e.target.value))}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                setRadiusInput(String(value));
+                handleChange('radius', value);
+              }}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              {localFilters.radius || 2000} m
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={radiusInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRadiusInput(value);
+                  const parsed = parseInt(value);
+                  if (!Number.isNaN(parsed)) {
+                    const clampedValue = Math.max(100, Math.min(5000, parsed));
+                    handleChange('radius', clampedValue);
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseInt(radiusInput);
+                  const fallback = 2000;
+                  const clamped = Number.isNaN(parsed)
+                    ? fallback
+                    : Math.max(100, Math.min(5000, parsed));
+                  setRadiusInput(String(clamped));
+                  handleChange('radius', clamped);
+                }}
+                className="w-20 px-2 py-1 border border-divider rounded text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
+              <span className="text-sm font-medium text-text-primary">m</span>
             </div>
           </div>
         </div>
@@ -106,11 +139,41 @@ export default function Filters({ filters, onChange, onReset, filteredPlaces = [
               max="5"
               step="0.1"
               value={localFilters.rating_min || 0}
-              onChange={(e) => handleChange('rating_min', parseFloat(e.target.value))}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setRatingInput(String(value));
+                handleChange('rating_min', value);
+              }}
               className="w-full h-2 bg-divider rounded-lg appearance-none cursor-pointer accent-primary-600"
             />
-            <div className="text-sm font-medium text-text-primary">
-              Rating ≥ {localFilters.rating_min || 0}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-text-primary">Rating ≥</span>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={ratingInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRatingInput(value);
+                  const parsed = parseFloat(value);
+                  if (!Number.isNaN(parsed)) {
+                    const clampedValue = Math.max(0, Math.min(5, parsed));
+                    handleChange('rating_min', clampedValue);
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseFloat(ratingInput);
+                  const fallback = 0;
+                  const clamped = Number.isNaN(parsed)
+                    ? fallback
+                    : Math.max(0, Math.min(5, parsed));
+                  setRatingInput(String(clamped));
+                  handleChange('rating_min', clamped);
+                }}
+                className="w-20 px-2 py-1 border border-divider rounded text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
             </div>
           </div>
         </div>

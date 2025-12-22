@@ -10,6 +10,12 @@ import { fetchPlaces } from '@/utils/api';
 import { searchNearbyPlaces, getPlaceNameAtLocation, searchPlacesByQuery } from '@/utils/googlePlaces';
 import { Place, FilterParams } from '@/utils/types';
 
+const STORAGE_KEYS = {
+  filters: 'ntu-food-map-filters',
+  basePoint: 'ntu-food-map-basePoint',
+  selectedLocation: 'ntu-food-map-selectedLocation',
+};
+
 // Dynamically import Map component to avoid SSR issues with Google Maps
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -41,7 +47,86 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const restoredRef = useRef(false);
   
+  // ---- State persistence (localStorage) ----
+  // Restore filters/basePoint/selectedLocation on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const restoreState = () => {
+      if (restoredRef.current) return;
+      restoredRef.current = true;
+      
+      try {
+        const savedFilters = localStorage.getItem(STORAGE_KEYS.filters);
+        const savedBasePoint = localStorage.getItem(STORAGE_KEYS.basePoint);
+        const savedSelectedLocation = localStorage.getItem(STORAGE_KEYS.selectedLocation);
+
+        if (savedFilters) {
+          const parsed = JSON.parse(savedFilters);
+          setFilters((prev) => ({ ...prev, ...parsed }));
+        }
+        if (savedBasePoint) {
+          const parsed = JSON.parse(savedBasePoint);
+          setBasePoint(parsed);
+        }
+        if (savedSelectedLocation) {
+          const parsed = JSON.parse(savedSelectedLocation);
+          setSelectedLocation(parsed);
+        }
+      } catch (error) {
+        console.error('Failed to restore state from localStorage:', error);
+      }
+    };
+
+    // Restore immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'complete') {
+      restoreState();
+    } else {
+      window.addEventListener('load', restoreState);
+      return () => {
+        window.removeEventListener('load', restoreState);
+      };
+    }
+  }, []);
+
+  // Persist filters/basePoint/selectedLocation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEYS.filters, JSON.stringify(filters));
+    } catch (error) {
+      console.error('Failed to persist filters:', error);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (basePoint) {
+        localStorage.setItem(STORAGE_KEYS.basePoint, JSON.stringify(basePoint));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.basePoint);
+      }
+    } catch (error) {
+      console.error('Failed to persist basePoint:', error);
+    }
+  }, [basePoint]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (selectedLocation) {
+        localStorage.setItem(STORAGE_KEYS.selectedLocation, JSON.stringify(selectedLocation));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.selectedLocation);
+      }
+    } catch (error) {
+      console.error('Failed to persist selectedLocation:', error);
+    }
+  }, [selectedLocation]);
+
   // Use ref to prevent multiple simultaneous loads
   const loadingRef = useRef(false);
 
@@ -131,7 +216,32 @@ export default function HomePage() {
   }, [loadPlaces, useGooglePlaces, mapLoaded]);
 
   const handleFilterChange = (newFilters: FilterParams) => {
+    const prevOpenNow = filters.open_now;
+    const newOpenNow = newFilters.open_now;
+    
+    // If only open_now filter changed, filter from existing places instead of re-fetching
+    const onlyOpenNowChanged = 
+      prevOpenNow !== newOpenNow &&
+      filters.radius === newFilters.radius &&
+      filters.rating_min === newFilters.rating_min &&
+      filters.price_max === newFilters.price_max &&
+      JSON.stringify(filters.categories || []) === JSON.stringify(newFilters.categories || []) &&
+      JSON.stringify(filters.features || []) === JSON.stringify(newFilters.features || []);
+
     setFilters({ ...filters, ...newFilters });
+
+    // If only open_now changed, filter locally instead of re-fetching
+    if (onlyOpenNowChanged && places.length > 0) {
+      if (newOpenNow) {
+        // Filter to only open places
+        const openPlaces = places.filter(place => place.is_open === true);
+        setFilteredPlaces(openPlaces);
+      } else {
+        // Show all places
+        setFilteredPlaces(places);
+      }
+    }
+    // Otherwise, let the useEffect handle re-fetching
   };
 
   const handlePlaceSelect = (place: Place) => {
@@ -202,11 +312,10 @@ export default function HomePage() {
     setMapLoaded(true);
   };
   
-  // Reset map loaded state when component unmounts or route changes
+  // Don't reset mapLoaded on unmount - keep it true to avoid re-loading issues
+  // Only clear search timeout on unmount
   useEffect(() => {
     return () => {
-      // Reset map loaded state when leaving the page
-      setMapLoaded(false);
       // Clear search timeout
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -260,6 +369,12 @@ export default function HomePage() {
     setSearchQuery('');
     setSearchResults([]);
     setShowSearchResults(false);
+    // Clear persisted state
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.filters);
+      localStorage.removeItem(STORAGE_KEYS.basePoint);
+      localStorage.removeItem(STORAGE_KEYS.selectedLocation);
+    }
     // Reset filters to default values
     const defaultFilters: FilterParams = {
       lat: 25.0170,
