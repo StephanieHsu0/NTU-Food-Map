@@ -34,7 +34,8 @@
     "clickToSelectCenter": "點擊地圖上的位置來選擇搜索中心點，系統會使用 Google Maps 的餐廳資訊進行篩選",
     "selectedLocation": "已選擇位置",
     "distanceFromBasePoint": "距離基準點",
-    "viewRoute": "查看路徑"
+    "viewRoute": "查看路徑",
+    "searchBasePoint": "搜尋地點作為基準點..."
   },
   "filters": {
     "title": "篩選條件",

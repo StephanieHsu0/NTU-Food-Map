@@ -7,7 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import Filters from '@/components/Filters';
 import RouletteModal from '@/components/RouletteModal';
 import { fetchPlaces } from '@/utils/api';
-import { searchNearbyPlaces, getPlaceNameAtLocation } from '@/utils/googlePlaces';
+import { searchNearbyPlaces, getPlaceNameAtLocation, searchPlacesByQuery } from '@/utils/googlePlaces';
 import { Place, FilterParams } from '@/utils/types';
 
 // Dynamically import Map component to avoid SSR issues with Google Maps
@@ -36,6 +36,11 @@ export default function HomePage() {
     rating_min: 0,
     price_max: 4,
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ name: string; lat: number; lng: number; address?: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Use ref to prevent multiple simultaneous loads
   const loadingRef = useRef(false);
@@ -195,8 +200,47 @@ export default function HomePage() {
     return () => {
       // Reset map loaded state when leaving the page
       setMapLoaded(false);
+      // Clear search timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
     };
   }, []);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim() || !mapLoaded) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await searchPlacesByQuery(query);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [mapLoaded]);
+
+  const handleSelectSearchResult = async (result: { name: string; lat: number; lng: number; address?: string }) => {
+    console.log('Selected search result:', result);
+    setBasePoint({ lat: result.lat, lng: result.lng, name: result.name });
+    setSelectedLocation({ lat: result.lat, lng: result.lng, name: result.name });
+    setFilters({
+      ...filters,
+      lat: result.lat,
+      lng: result.lng,
+    });
+    setSearchQuery(result.name);
+    setShowSearchResults(false);
+    setSearchResults([]);
+  };
 
   const handleReset = () => {
     console.log('🔄 Reset button clicked');
@@ -205,6 +249,10 @@ export default function HomePage() {
     setSelectedLocation(null);
     // Reset selected place
     setSelectedPlace(null);
+    // Reset search
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
     // Reset filters to default values
     const defaultFilters: FilterParams = {
       lat: 25.0170,
@@ -236,7 +284,84 @@ export default function HomePage() {
               <span className="hidden sm:inline">{t('roulette.title')}</span>
             </button>
           </div>
-          {useGooglePlaces && !basePoint && (
+          {/* Search Box for Base Point */}
+          {useGooglePlaces && (
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    
+                    // Clear previous timeout
+                    if (searchTimeoutRef.current) {
+                      clearTimeout(searchTimeoutRef.current);
+                    }
+                    
+                    if (value.trim()) {
+                      // Debounce search by 500ms
+                      searchTimeoutRef.current = setTimeout(() => {
+                        handleSearch(value);
+                      }, 500);
+                    } else {
+                      setShowSearchResults(false);
+                      setSearchResults([]);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      e.preventDefault();
+                      handleSearch(searchQuery);
+                    }
+                  }}
+                  placeholder={t('map.searchBasePoint') || '搜尋地點作為基準點...'}
+                  className="w-full px-4 py-2.5 border border-divider rounded-xl text-sm text-text-primary bg-white focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent pr-10"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-600 border-t-transparent"></div>
+                  </div>
+                )}
+                {!isSearching && searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSearchResults(false);
+                      setSearchResults([]);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {/* Search Results */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="mt-2 border border-divider rounded-xl bg-white shadow-lg max-h-60 overflow-y-auto">
+                  {searchResults.map((result, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSelectSearchResult(result)}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-divider last:border-b-0"
+                    >
+                      <div className="font-medium text-text-primary">{result.name}</div>
+                      {result.address && (
+                        <div className="text-xs text-text-secondary mt-1">{result.address}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showSearchResults && searchResults.length === 0 && !isSearching && (
+                <div className="mt-2 px-4 py-3 text-sm text-text-secondary text-center border border-divider rounded-xl bg-white">
+                  {t('common.noResults')}
+                </div>
+              )}
+            </div>
+          )}
+          {useGooglePlaces && !basePoint && !searchQuery && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
               <p className="text-sm text-blue-800">
                 💡 {t('map.clickToSelectCenter')}

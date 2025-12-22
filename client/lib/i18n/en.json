@@ -34,7 +34,8 @@
     "clickToSelectCenter": "Click on a location on the map to select the search center. The system will use Google Maps restaurant information for filtering.",
     "selectedLocation": "Selected location",
     "distanceFromBasePoint": "Distance from Base Point",
-    "viewRoute": "View Route"
+    "viewRoute": "View Route",
+    "searchBasePoint": "Search for a location as base point..."
   },
   "filters": {
     "title": "Filters",
