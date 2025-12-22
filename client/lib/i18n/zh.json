@@ -35,7 +35,8 @@
     "selectedLocation": "已選擇位置",
     "distanceFromBasePoint": "距離基準點",
     "viewRoute": "查看路徑",
-    "searchBasePoint": "搜尋地點作為基準點..."
+    "searchBasePoint": "搜尋地點作為基準點...",
+    "basePointLocked": "基準點已鎖定，點擊重置或使用搜尋來更改"
   },
   "filters": {
     "title": "篩選條件",

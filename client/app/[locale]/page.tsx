@@ -148,6 +148,13 @@ export default function HomePage() {
   const handleMapClick = async (lat: number, lng: number) => {
     console.log('Map clicked at:', lat, lng);
     
+    // Only allow setting basePoint via map click if no basePoint is currently set
+    // Once basePoint is set, it can only be changed via search, "view nearby" button, or reset
+    if (basePoint) {
+      console.log('⚠️ BasePoint already set, ignoring map click. Use search or reset to change.');
+      return;
+    }
+    
     // Set basePoint (點A) immediately with coordinates
     setBasePoint({ lat, lng });
     // Also set selectedLocation for display purposes
@@ -372,6 +379,9 @@ export default function HomePage() {
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
               <p className="text-sm text-green-800">
                 ✓ {t('map.basePoint')}：{basePoint.name || `(${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)})`}
+              </p>
+              <p className="text-xs text-green-700 mt-1">
+                💡 {t('map.basePointLocked') || '基準點已鎖定，點擊重置或使用搜尋來更改'}
               </p>
             </div>
           )}

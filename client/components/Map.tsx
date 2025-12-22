@@ -29,24 +29,6 @@ interface MapProps {
   onLocationSelect?: (lat: number, lng: number, name?: string) => void;
 }
 
-// Calculate distance between two points using Haversine formula
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-// Generate Google Maps directions link
-function getGoogleMapsDirectionsLink(lat1: number, lng1: number, lat2: number, lng2: number): string {
-  return `https://www.google.com/maps/dir/${lat1},${lng1}/${lat2},${lng2}`;
-}
-
 export default function Map({ 
   places, 
   selectedPlace, 
@@ -69,8 +51,6 @@ export default function Map({
   const [isLoaded, setIsLoaded] = useState(false);
   const locationMarkerRef = useRef<google.maps.Marker | null>(null);
   const locationInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const basePointMarkerRef = useRef<google.maps.Marker | null>(null);
-  const basePointInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const [showLocationInfo, setShowLocationInfo] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
@@ -178,14 +158,6 @@ export default function Map({
       return;
     }
 
-    // Only update if the selected place is different from current info window
-    // This prevents unnecessary updates when marker is clicked directly
-    if (infoWindowPlace?.id === selectedPlace.id) {
-      return;
-    }
-
-    console.log('🔄 selectedPlace changed, updating info window:', selectedPlace.name_zh || selectedPlace.name_en);
-    
     // Pan to the selected place
     const placePosition = { lat: selectedPlace.lat, lng: selectedPlace.lng };
     mapRef.current.panTo(placePosition);
@@ -195,86 +167,46 @@ export default function Map({
     
     // Show info window for the selected place
     setInfoWindowPlace(selectedPlace);
-  }, [selectedPlace, isLoaded, infoWindowPlace]);
+  }, [selectedPlace, isLoaded]);
 
-  // Update basePoint marker (點A) - this is the search center
+  // Update location marker and circle when selectedLocation changes
   useEffect(() => {
     if (!isLoaded || !mapRef.current) {
       return;
     }
 
-    // Clean up existing basePoint marker
-    if (basePointMarkerRef.current) {
-      basePointMarkerRef.current.setMap(null);
-      basePointMarkerRef.current = null;
-    }
-    if (basePointInfoWindowRef.current) {
-      basePointInfoWindowRef.current.close();
-      basePointInfoWindowRef.current = null;
-    }
-
-    if (!basePoint) {
-      return;
-    }
-
-    // Create marker for basePoint (點A)
-    const marker = new window.google.maps.Marker({
-      position: { lat: basePoint.lat, lng: basePoint.lng },
-      map: mapRef.current,
-      icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 12,
-        fillColor: '#FF0000',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWeight: 3,
-      },
-      title: basePoint.name || t('map.basePoint'),
-      zIndex: 1001, // Higher than other markers
-      clickable: true,
-      label: {
-        text: 'A',
-        color: 'white',
-        fontSize: '12px',
-        fontWeight: 'bold',
-      },
-    });
-
-    // Add click listener to show info window
-    marker.addListener('click', () => {
-      if (basePointInfoWindowRef.current) {
-        basePointInfoWindowRef.current.close();
-      }
-      
-      const displayName = basePoint.name || `(${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)})`;
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px; min-width: 150px;">
-            <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
-              ${t('map.basePoint')}: ${displayName}
-            </div>
-            <div style="font-size: 11px; color: #666; margin-top: 4px;">
-              ${basePoint.lat.toFixed(4)}, ${basePoint.lng.toFixed(4)}
-            </div>
-          </div>
-        `,
-      });
-      
-      infoWindow.open(mapRef.current, marker);
-      basePointInfoWindowRef.current = infoWindow;
-    });
-
-    basePointMarkerRef.current = marker;
-
-    // Create or update circle for search radius centered on basePoint
+    // Always clean up existing circle first
     if (circleRef.current) {
       circleRef.current.setMap(null);
       circleRef.current = null;
     }
 
+    if (!selectedLocation) {
+      // Clean up if selectedLocation is removed
+      if (locationMarkerRef.current) {
+        locationMarkerRef.current.setMap(null);
+        locationMarkerRef.current = null;
+      }
+      if (locationInfoWindowRef.current) {
+        locationInfoWindowRef.current.close();
+        locationInfoWindowRef.current = null;
+      }
+      setShowLocationInfo(false);
+      return;
+    }
+
+    // Remove existing marker if any
+    if (locationMarkerRef.current) {
+      locationMarkerRef.current.setMap(null);
+    }
+    if (locationInfoWindowRef.current) {
+      locationInfoWindowRef.current.close();
+    }
+
+    // Create or update circle for search radius (only one circle should exist)
     if (radius && radius > 0) {
       const circle = new window.google.maps.Circle({
-        center: { lat: basePoint.lat, lng: basePoint.lng },
+        center: { lat: selectedLocation.lat, lng: selectedLocation.lng },
         radius: radius,
         fillColor: '#4285F4',
         fillOpacity: 0.1,
@@ -282,55 +214,25 @@ export default function Map({
         strokeOpacity: 0.5,
         strokeWeight: 2,
         map: mapRef.current,
-        clickable: false,
+        clickable: false, // Ensure circle doesn't block map clicks
       });
       circleRef.current = circle;
     }
-  }, [basePoint, isLoaded, radius, t]);
 
-  // Update location marker when selectedLocation changes (for display purposes)
-  useEffect(() => {
-    if (!isLoaded || !mapRef.current) {
-      return;
-    }
-
-    // Clean up existing location marker
-    if (locationMarkerRef.current) {
-      locationMarkerRef.current.setMap(null);
-      locationMarkerRef.current = null;
-    }
-    if (locationInfoWindowRef.current) {
-      locationInfoWindowRef.current.close();
-      locationInfoWindowRef.current = null;
-    }
-
-    if (!selectedLocation) {
-      setShowLocationInfo(false);
-      return;
-    }
-
-    // Only show selectedLocation marker if it's different from basePoint
-    if (basePoint && 
-        Math.abs(selectedLocation.lat - basePoint.lat) < 0.0001 && 
-        Math.abs(selectedLocation.lng - basePoint.lng) < 0.0001) {
-      // Same location as basePoint, don't show duplicate marker
-      return;
-    }
-
-    // Create marker for selectedLocation (if different from basePoint)
+    // Create new marker for selected location
     const marker = new window.google.maps.Marker({
       position: { lat: selectedLocation.lat, lng: selectedLocation.lng },
       map: mapRef.current,
       icon: {
         path: window.google.maps.SymbolPath.CIRCLE,
         scale: 10,
-        fillColor: '#00FF00',
+        fillColor: '#FF0000',
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
         strokeWeight: 3,
       },
       title: selectedLocation.name || t('map.selectLocation'),
-      zIndex: 999,
+      zIndex: 1000,
       clickable: true,
     });
 
@@ -361,8 +263,29 @@ export default function Map({
       setShowLocationInfo(true);
     });
 
+    // Auto-open info window when location is selected
+    const displayName = selectedLocation.name || `(${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)})`;
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="padding: 8px; min-width: 150px;">
+          <div style="font-weight: bold; margin-bottom: 4px; color: #333;">
+            ${displayName}
+          </div>
+          ${selectedLocation.name ? `
+          <div style="font-size: 11px; color: #666; margin-top: 4px;">
+            ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
+          </div>
+          ` : ''}
+        </div>
+      `,
+    });
+    
+    infoWindow.open(mapRef.current, marker);
+    locationInfoWindowRef.current = infoWindow;
+    setShowLocationInfo(true);
+
     locationMarkerRef.current = marker;
-  }, [selectedLocation, basePoint, isLoaded, t]);
+  }, [selectedLocation, isLoaded, radius]);
 
   const getMarkerIcon = (place: Place, isSelected: boolean): google.maps.Symbol | undefined => {
     if (!isLoaded || typeof window === 'undefined' || !window.google) {
@@ -396,22 +319,7 @@ export default function Map({
   };
 
   const handleMarkerClick = (place: Place) => {
-    console.log('📍 Marker clicked:', place);
-    // Ensure map is loaded before showing info window
-    if (!isLoaded || !mapRef.current) {
-      console.warn('⚠️ Map not loaded yet, waiting...');
-      // Wait a bit and try again
-      setTimeout(() => {
-        if (mapRef.current) {
-          console.log('✅ Map loaded, showing info window');
-          setInfoWindowPlace(place);
-          onPlaceSelect(place);
-        }
-      }, 100);
-      return;
-    }
     // Show info window and select place
-    console.log('✅ Showing info window for place:', place.name_zh || place.name_en);
     setInfoWindowPlace(place);
     onPlaceSelect(place);
   };
@@ -515,6 +423,7 @@ export default function Map({
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: true,
+            language: mapLanguage,
           }}
         >
           {/* Search radius circle - managed via useEffect to ensure only one circle exists */}
@@ -547,13 +456,10 @@ export default function Map({
             );
           })}
 
-          {infoWindowPlace && isLoaded && typeof window !== 'undefined' && window.google && (
+          {infoWindowPlace && (
             <InfoWindow
               position={{ lat: infoWindowPlace.lat, lng: infoWindowPlace.lng }}
               onCloseClick={handleInfoWindowClose}
-              options={{
-                pixelOffset: new window.google.maps.Size(0, -40),
-              }}
             >
               <div className="p-2 min-w-[200px]">
                 <h3 className="font-semibold text-sm mb-1 text-gray-900">{infoWindowPlace.name_zh}</h3>
@@ -568,24 +474,7 @@ export default function Map({
                       {(infoWindowPlace.distance_m / 1000).toFixed(2)} km
                     </div>
                   )}
-                  {/* Show distance from basePoint if available */}
-                  {basePoint && (
-                    <div className="text-gray-700 mt-2">
-                      <div className="font-semibold">{t('map.distanceFromBasePoint')}:</div>
-                      <div>
-                        {(calculateDistance(basePoint.lat, basePoint.lng, infoWindowPlace.lat, infoWindowPlace.lng) / 1000).toFixed(2)} km
-                      </div>
-                      <a
-                        href={getGoogleMapsDirectionsLink(basePoint.lat, basePoint.lng, infoWindowPlace.lat, infoWindowPlace.lng)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline mt-1 inline-block"
-                      >
-                        {t('map.viewRoute')}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex gap-2 mt-2 flex-wrap">
+                  <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => {
                         if (infoWindowPlace.id) {

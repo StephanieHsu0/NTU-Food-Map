@@ -35,7 +35,8 @@
     "selectedLocation": "Selected location",
     "distanceFromBasePoint": "Distance from Base Point",
     "viewRoute": "View Route",
-    "searchBasePoint": "Search for a location as base point..."
+    "searchBasePoint": "Search for a location as base point...",
+    "basePointLocked": "Base point is locked. Click reset or use search to change it"
   },
   "filters": {
     "title": "Filters",
