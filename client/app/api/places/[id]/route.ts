@@ -30,11 +30,13 @@ export async function GET(
 
     // If not found in database and it looks like a Google Places ID, try Google Places API
     if (!doc && (id.startsWith('ChIJ') || id.startsWith('ChlJ') || id.length > 20)) {
-      console.log(`Place ${id} not found in database, trying Google Places API...`);
-      const { getFullPlaceDetailsFromGoogle } = await import('@/lib/googlePlacesServer');
-      const googlePlace = await getFullPlaceDetailsFromGoogle(id, lat, lng);
-      
-      if (googlePlace) {
+      console.log(`[Places API] Place ${id} not found in database, trying Google Places API...`);
+      try {
+        const { getFullPlaceDetailsFromGoogle } = await import('@/lib/googlePlacesServer');
+        const googlePlace = await getFullPlaceDetailsFromGoogle(id, lat, lng);
+        
+        if (googlePlace) {
+          console.log(`[Places API] Successfully fetched place ${id} from Google Places API: ${googlePlace.name}`);
         // Convert Google Places API response to Place format
         const placeTypes = googlePlace.types || [];
         const foodRelatedTypes = ['restaurant', 'food', 'cafe', 'meal_takeaway', 'bakery', 'bar', 'meal_delivery'];
@@ -94,7 +96,12 @@ export async function GET(
         place.score = score;
         place.score_breakdown = breakdown;
 
-        return NextResponse.json(place);
+          return NextResponse.json(place);
+        } else {
+          console.warn(`[Places API] Google Places API returned null for place ${id}`);
+        }
+      } catch (googleError) {
+        console.error(`[Places API] Error fetching place ${id} from Google Places API:`, googleError);
       }
     }
 

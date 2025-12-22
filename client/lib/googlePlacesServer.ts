@@ -64,11 +64,14 @@ export async function getPlaceDetailsFromGoogle(
         name_en: name, // Could fetch again with language=en if needed
       };
     } else {
-      console.warn(`Google Places API returned status: ${data.status} for place ${placeId}`);
+      console.warn(`[Google Places API] API returned status: ${data.status} for place ${placeId}`);
       return null;
     }
   } catch (error) {
-    console.error(`Error fetching place details from Google Places API for ${placeId}:`, error);
+    console.error(`[Google Places API] Exception fetching place ${placeId}:`, error);
+    if (error instanceof Error) {
+      console.error(`[Google Places API] Error message: ${error.message}`);
+    }
     return null;
   }
 }
@@ -82,7 +85,7 @@ export async function getFullPlaceDetailsFromGoogle(
   userLng: number = 121.5395
 ): Promise<any | null> {
   if (!GOOGLE_PLACES_API_KEY) {
-    console.warn('Google Places API key not configured for server-side use');
+    console.error('[Google Places API] API key not configured. Check GOOGLE_PLACES_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY environment variable.');
     return null;
   }
 
@@ -107,20 +110,33 @@ export async function getFullPlaceDetailsFromGoogle(
     const response = await fetch(url);
     
     if (!response.ok) {
-      console.error(`Google Places API error: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unable to read error response');
+      console.error(`[Google Places API] HTTP error ${response.status} for place ${placeId}:`, errorText);
       return null;
     }
 
     const data: GooglePlaceDetailsResponse = await response.json();
     
     if (data.status === 'OK' && data.result) {
+      console.log(`[Google Places API] Successfully fetched place ${placeId}: ${data.result.name}`);
       return data.result;
     } else {
-      console.warn(`Google Places API returned status: ${data.status} for place ${placeId}`);
+      console.warn(`[Google Places API] API returned status: ${data.status} for place ${placeId}`);
+      if (data.status === 'REQUEST_DENIED') {
+        console.error('[Google Places API] Request denied. Check API key permissions and billing.');
+      } else if (data.status === 'INVALID_REQUEST') {
+        console.error(`[Google Places API] Invalid request for place ${placeId}. Check place_id format.`);
+      } else if (data.status === 'NOT_FOUND') {
+        console.warn(`[Google Places API] Place ${placeId} not found in Google Places.`);
+      }
       return null;
     }
   } catch (error) {
-    console.error(`Error fetching place details from Google Places API for ${placeId}:`, error);
+    console.error(`[Google Places API] Exception fetching place ${placeId}:`, error);
+    if (error instanceof Error) {
+      console.error(`[Google Places API] Error message: ${error.message}`);
+      console.error(`[Google Places API] Error stack: ${error.stack}`);
+    }
     return null;
   }
 }
