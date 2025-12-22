@@ -38,11 +38,44 @@ export default function UsageInstructions() {
             <h3 className="text-xl font-semibold mb-4 text-text-primary">
               {t('usageInstructions.sections.features.title')}
             </h3>
-            <ul className="space-y-2 list-disc list-inside text-text-secondary">
-              {t.raw('usageInstructions.sections.features.content').map((item: string, index: number) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            <div className="space-y-3 text-text-secondary">
+              {t.raw('usageInstructions.sections.features.content').map((item: string, index: number) => {
+                const trimmed = item.trim();
+                // Check if item starts with a number followed by a dot (main point like "1. ", "2. ")
+                const isMainPoint = /^\d+\.\s/.test(trimmed);
+                
+                if (isMainPoint) {
+                  // Main point: no bullet, display as is with font-medium
+                  return (
+                    <div key={index} className="font-medium text-text-primary">
+                      {trimmed}
+                    </div>
+                  );
+                } else {
+                  // Sub-point: check if it starts with bullet or has leading spaces
+                  const hasBullet = trimmed.startsWith('•') || trimmed.startsWith('·');
+                  const leadingSpaces = item.length - trimmed.length;
+                  
+                  if (hasBullet || leadingSpaces > 0) {
+                    // Sub-point: add indentation
+                    // If it already has bullet, keep it; otherwise add one
+                    const displayText = hasBullet ? trimmed : `• ${trimmed}`;
+                    return (
+                      <div key={index} className="ml-6">
+                        {displayText}
+                      </div>
+                    );
+                  }
+                  
+                  // Regular item without special formatting
+                  return (
+                    <div key={index}>
+                      {trimmed}
+                    </div>
+                  );
+                }
+              })}
+            </div>
           </section>
 
           {/* Design Section */}

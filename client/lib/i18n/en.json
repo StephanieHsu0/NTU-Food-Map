@@ -131,23 +131,39 @@
       "features": {
         "title": "Feature Usage",
         "content": [
-          "1. Click on a location on the map to set the base point (Point A). The system will search for nearby restaurants centered on this point",
-          "2. Use the filters on the left to set search criteria: distance, rating, price, categories, etc.",
-          "3. Click on a restaurant from the filter results (Point B) to view details. The base point will not change",
-          "4. Click the \"View Nearby Restaurants\" button in the restaurant details to change the base point to that restaurant",
-          "5. Click the \"Reset\" button to clear all settings and start over"
+          "1. Set Base Point (Point A):",
+          "   • Use the search box to enter a location name or address to search and set the base point",
+          "   • Or click on a location on the map to set the base point (only available when no base point is set)",
+          "   • Once set, the base point is locked and won't change if you accidentally click on the map",
+          "2. Use the filters on the left to set search criteria:",
+          "   • Max Distance: Drag the slider or directly enter a value in the input box (100-5000 meters)",
+          "   • Min Rating: Drag the slider or directly enter a value (0-5, supports decimals)",
+          "   • Price: Select the maximum acceptable price level",
+          "   • Categories: Select restaurant types (multiple selection available)",
+          "   • Features: Select special requirements (e.g., show only open restaurants)",
+          "3. View Filtered Results:",
+          "   • Filtered restaurants are displayed on the map and shown in a list at the bottom left",
+          "   • Click on restaurant markers or restaurants in the list to view details",
+          "   • Clicking on a restaurant won't change the base point",
+          "4. Change Base Point:",
+          "   • Click the \"View Nearby Restaurants\" button in restaurant details to change the base point to that restaurant",
+          "   • Or use the search box to search for a new location to set the base point",
+          "   • Click the \"Reset\" button to clear all settings (including base point) and start over",
+          "5. Other Features:",
+          "   • Food Roulette: Randomly select from filtered restaurants",
+          "   • Click on empty areas of the map to close restaurant info windows"
         ]
       },
       "design": {
         "title": "Design Explanation",
         "priceStandard": {
           "title": "Price Level Standard",
-          "content": "Price levels are based on Google Places API's price_level setting:",
+          "content": "Price levels are based on Google Places API's price_level setting. Map markers are color-coded by price level:",
           "levels": {
-            "1": "$ - Inexpensive: Usually snacks, street vendors, etc. Average cost around NT$100 or less",
-            "2": "$$ - Moderate: General restaurants, cafes, etc. Average cost around NT$100-300",
-            "3": "$$$ - Expensive: Mid-to-high-end restaurants. Average cost around NT$300-600",
-            "4": "$$$$ - Very Expensive: High-end restaurants. Average cost around NT$600 or more"
+            "1": "$ - Inexpensive (Green marker 🟢): Usually snacks, street vendors, etc. Average cost around NT$100 or less",
+            "2": "$$ - Moderate (Yellow marker 🟡): General restaurants, cafes, etc. Average cost around NT$100-300",
+            "3": "$$$ - Expensive (Orange marker 🟠): Mid-to-high-end restaurants. Average cost around NT$300-600",
+            "4": "$$$$ - Very Expensive (Red marker 🔴): High-end restaurants. Average cost around NT$600 or more"
           }
         },
         "ratingStandard": {
