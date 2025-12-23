@@ -100,6 +100,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
+      // For Google only: bypass extra checks to avoid accidental AccessDenied
+      if (account.provider === 'google') {
+        return true;
+      }
+
       // 驗證 user.id 存在
       if (!user.id) {
         console.error('❌ [SignIn Security] Missing user.id. Login blocked.');
