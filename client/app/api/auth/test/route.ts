@@ -19,8 +19,6 @@ export async function GET() {
       env: {
         hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
         hasGoogleSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-        hasLineId: !!process.env.LINE_CHANNEL_ID,
-        hasLineSecret: !!process.env.LINE_CHANNEL_SECRET,
         hasAuthSecret: !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
         hasMongoUri: !!process.env.MONGODB_URI,
       },
