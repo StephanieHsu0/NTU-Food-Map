@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Place } from '@/utils/types';
 
+// 模組級別的變數，確保語言配置只設置一次，即使組件重新掛載也不會改變
+let globalMapLanguage: string | null = null;
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
@@ -70,12 +73,23 @@ export default function Map({
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY || '';
   const libraries = useMemo<("places")[]>(() => ['places'], []);
 
-  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
+  // 使用穩定的語言配置避免 Loader 重複調用
+  // Google Maps API 的語言是在腳本加載時設置的，不能在運行時更改
+  // 使用模組級別的變數確保語言配置只設置一次，即使組件重新掛載也不會改變
+  // 這避免了語言切換時重新加載腳本導致的錯誤
+  if (globalMapLanguage === null) {
+    globalMapLanguage = mapLanguage;
+  }
+  const stableLanguage = globalMapLanguage;
+  
+  const loaderConfig = useMemo(() => ({
     id: 'google-map-script',
     googleMapsApiKey,
     libraries,
-    language: mapLanguage,
-  });
+    language: stableLanguage, // 使用穩定的語言，避免重新加載
+  }), [googleMapsApiKey, libraries, stableLanguage]);
+
+  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader(loaderConfig);
 
   // Keep onMapClick ref up to date
   useEffect(() => {
@@ -83,20 +97,23 @@ export default function Map({
     onMapClickRef.current = onMapClick;
   }, [onMapClick]);
 
-  // Debug: Log API key status (always log for debugging)
+  // 安全地檢查 API Key 狀態（不泄露實際 key）
   useEffect(() => {
-    console.log('🔍 Google Maps API Key Debug Info:', {
-      hasKey: !!googleMapsApiKey,
-      keyLength: googleMapsApiKey.length,
-      keyPreview: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'empty',
-      keyStartsWith: googleMapsApiKey ? googleMapsApiKey.substring(0, 4) : 'N/A',
-      isProduction: process.env.NODE_ENV === 'production',
-      envVar: process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY ? 'exists' : 'missing',
-    });
-    
-    // Warn if key seems invalid
-    if (googleMapsApiKey && (googleMapsApiKey.length < 20 || !googleMapsApiKey.startsWith('AIza'))) {
-      console.warn('⚠️ API Key format may be invalid. Google Maps API Keys usually start with "AIza" and are 39 characters long.');
+    if (process.env.NODE_ENV === 'development') {
+      const hasKey = !!googleMapsApiKey;
+      const keyLength = googleMapsApiKey.length;
+      const isValidFormat = googleMapsApiKey && googleMapsApiKey.length >= 20 && googleMapsApiKey.startsWith('AIza');
+      
+      console.log('🔍 Google Maps API Key Status:', {
+        hasKey,
+        keyLength: hasKey ? keyLength : 0,
+        isValidFormat,
+        envVar: process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY ? 'exists' : 'missing',
+      });
+      
+      if (googleMapsApiKey && !isValidFormat) {
+        console.warn('⚠️ API Key format may be invalid. Google Maps API Keys usually start with "AIza" and are 39 characters long.');
+      }
     }
   }, [googleMapsApiKey]);
 
@@ -134,6 +151,11 @@ export default function Map({
       onMapLoad();
     }
   }, [onMapLoad]);
+
+  // 注意：Google Maps API 的語言是在腳本加載時設置的，無法在運行時更改
+  // 為了避免語言切換時重新加載腳本（會導致 "Loader must not be called again" 錯誤），
+  // 我們使用首次加載時的語言。如果用戶切換語言，地圖控件可能不會立即更新語言，
+  // 但這比導致錯誤更好。如果需要完全支持語言切換，需要重新加載整個頁面。
 
   const onMapUnmount = useCallback(() => {
     // Clean up click listener

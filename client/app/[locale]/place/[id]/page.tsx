@@ -12,6 +12,9 @@ import ScoreBreakdown from '@/components/ScoreBreakdown';
 import CommentSection from '@/components/CommentSection';
 import FavoriteButton from '@/components/FavoriteButton';
 
+// 模組級別的變數，確保語言配置只設置一次，即使組件重新掛載也不會改變
+let globalMapLanguage: string | null = null;
+
 export default function PlaceDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -37,16 +40,21 @@ export default function PlaceDetailPage() {
   const libraries = useMemo<("places")[]>(() => ['places'], []);
   
   // Map language based on locale: 'zh' -> 'zh-TW', 'en' -> 'en'
-  // Must match Map.tsx to avoid LoadScript conflicts
+  // 使用模組級別的變數確保語言配置只設置一次，避免語言切換時重新加載腳本
   const mapLanguage = locale === 'zh' ? 'zh-TW' : 'en';
-
-  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader({
-    // Keep the same loader id/options as map to avoid mismatch errors
+  if (globalMapLanguage === null) {
+    globalMapLanguage = mapLanguage;
+  }
+  const stableLanguage = globalMapLanguage;
+  
+  const loaderConfig = useMemo(() => ({
     id: 'google-map-script',
     googleMapsApiKey,
     libraries,
-    language: mapLanguage, // Add language to match Map.tsx
-  });
+    language: stableLanguage, // 使用穩定的語言，與 Map.tsx 保持一致
+  }), [googleMapsApiKey, libraries, stableLanguage]);
+
+  const { isLoaded: scriptLoaded, loadError: scriptError } = useJsApiLoader(loaderConfig);
 
   useEffect(() => {
     if (!params.id) return;
