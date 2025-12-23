@@ -100,56 +100,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
-      // 驗證 user.id 存在
-      if (!user.id) {
-        console.error('❌ [SignIn Security] Missing user.id. Login blocked.');
-        return false;
-      }
-
-      const currentUserId = user.id.toString();
-      console.log(`🔐 [SignIn] Provider: ${account.provider}, ProviderAccountId: ${providerAccountId}, UserId: ${currentUserId}`);
-
-      try {
-        const db = await connectToDatabase();
-        const accountsCollection = db.collection('accounts');
-        const usersCollection = db.collection('users');
-
-        // 檢查此 providerAccountId 是否已被連結到其他 User
-        const existingAccount = await accountsCollection.findOne({
-          provider: account.provider,
-          providerAccountId: providerAccountId,
-        });
-
-        if (existingAccount) {
-          // 帳號已存在 - 必須嚴格驗證
-          const linkedUserId = existingAccount.userId.toString();
-
-          // 若已連結到其他 user，改為允許覆蓋到當前 user（避免 Configuration error）
-          if (linkedUserId !== currentUserId) {
-            await accountsCollection.updateOne(
-              { provider: account.provider, providerAccountId },
-              { $set: { userId: new ObjectId(currentUserId) } }
-            );
-            console.log(`ℹ️ [SignIn] Re-linked providerAccountId ${providerAccountId} to User ${currentUserId} (was ${linkedUserId})`);
-            return true;
-          }
-
-          // 帳號已正確連結到當前用戶 - 允許登入
-          console.log(`✅ [SignIn] Existing account verified. ProviderAccountId ${providerAccountId} correctly linked to User ${currentUserId}`);
-          return true;
-        } else {
-          // 帳號不存在 - 這是新用戶首次登入
-          // NextAuth adapter 會自動創建新帳號連結
-          // 但我們需要確保不會有競態條件
-          console.log(`✅ [SignIn] New account. ProviderAccountId ${providerAccountId} will be linked to User ${currentUserId}`);
-          return true;
-        }
-      } catch (error) {
-        // 🔴 關鍵安全決策：如果資料庫檢查失敗，為了安全起見應該拒絕登入
-        // 這可以防止在資料庫故障時發生帳號混淆
-        console.error('❌ [SignIn Security] CRITICAL: Database operation failed. Login blocked for security.', error);
-        return false;
-      }
+      // For Google only,允許登入（DB 檢查交由 adapter 處理）
+      console.log(`🔐 [SignIn] Provider: ${account.provider}, ProviderAccountId: ${providerAccountId}`);
+      return true;
     },
     async session({ session, user }) {
       // 🔴 安全檢查：確保 session 和 user 對象存在且有效
