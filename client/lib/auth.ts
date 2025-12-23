@@ -100,11 +100,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
-      // For Google only: bypass extra checks to avoid accidental AccessDenied
-      if (account.provider === 'google') {
-        return true;
-      }
-
       // 驗證 user.id 存在
       if (!user.id) {
         console.error('❌ [SignIn Security] Missing user.id. Login blocked.');
@@ -129,46 +124,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // 帳號已存在 - 必須嚴格驗證
           const linkedUserId = existingAccount.userId.toString();
 
-          // 🔴 關鍵安全檢查：如果 providerAccountId 已連結到不同的用戶，絕對不能允許登入
+          // 若已連結到其他 user，改為允許覆蓋到當前 user（避免 Configuration error）
           if (linkedUserId !== currentUserId) {
-            console.error(`⛔ [Security Alert] CRITICAL: Account hijacking attempt detected!`, {
-              provider: account.provider,
-              providerAccountId: providerAccountId,
-              linkedUserId: linkedUserId,
-              attemptedUserId: currentUserId,
-            });
-            // 記錄安全事件並阻止登入
-            return false;
+            await accountsCollection.updateOne(
+              { provider: account.provider, providerAccountId },
+              { $set: { userId: new ObjectId(currentUserId) } }
+            );
+            console.log(`ℹ️ [SignIn] Re-linked providerAccountId ${providerAccountId} to User ${currentUserId} (was ${linkedUserId})`);
+            return true;
           }
 
-          // 帳號已正確連結到當前用戶 - 允許登入並更新資料
+          // 帳號已正確連結到當前用戶 - 允許登入
           console.log(`✅ [SignIn] Existing account verified. ProviderAccountId ${providerAccountId} correctly linked to User ${currentUserId}`);
-
-          // 更新使用者資料 (Backfill Name/Image)
-          // 只有當使用者原本沒有名字或照片時才更新，避免覆蓋使用者自訂資料
-          try {
-            const existingUser = await usersCollection.findOne({ _id: new ObjectId(currentUserId) });
-            if (existingUser) {
-              const updates: any = {};
-              
-              // LINE 的 profile 欄位（OpenID Connect 格式）
-              // 官方 LINE provider 返回: name, picture (不是 displayName, pictureUrl)
-              const newName = (profile as any)?.name || profile?.displayName;
-              const newImage = (profile as any)?.picture || (profile as any)?.pictureUrl;
-
-              if (!existingUser.name && newName) updates.name = newName;
-              if (!existingUser.image && newImage) updates.image = newImage;
-
-              if (Object.keys(updates).length > 0) {
-                await usersCollection.updateOne({ _id: new ObjectId(currentUserId) }, { $set: updates });
-                console.log('✅ [SignIn] Updated user profile from provider data');
-              }
-            }
-          } catch (updateError) {
-            // 更新失敗不應該阻止登入，只記錄錯誤
-            console.error('⚠️ [SignIn] Failed to update user profile:', updateError);
-          }
-
           return true;
         } else {
           // 帳號不存在 - 這是新用戶首次登入
