@@ -10,6 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 🔴 安全檢查：驗證 ObjectId 格式
+    if (!params.id || !/^[a-f\d]{24}$/i.test(params.id)) {
+      return NextResponse.json(
+        { error: 'Invalid favorite ID format' },
+        { status: 400 }
+      );
+    }
+
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -62,6 +70,14 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 🔴 安全檢查：驗證 ObjectId 格式
+    if (!params.id || !/^[a-f\d]{24}$/i.test(params.id)) {
+      return NextResponse.json(
+        { error: 'Invalid favorite ID format' },
+        { status: 400 }
+      );
+    }
+
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
@@ -126,6 +142,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 🔴 安全檢查：驗證 ObjectId 格式
+    if (!params.id || !/^[a-f\d]{24}$/i.test(params.id)) {
+      return NextResponse.json(
+        { error: 'Invalid favorite ID format' },
+        { status: 400 }
+      );
+    }
+
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(

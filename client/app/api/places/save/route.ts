@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/db';
 import { PlaceDocument } from '@/utils/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  try {
+    // 🔴 安全檢查：只有管理員或授權用戶才能儲存店家資料
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // 可以在這裡加入角色檢查，例如只有 admin 角色才能儲存
+    // if ((session.user as any).role !== 'admin') {
+    //   return NextResponse.json(
+    //     { error: 'Forbidden: Admin access required' },
+    //     { status: 403 }
+    //   );
+    // }
   try {
     const body = await request.json();
     const place = body?.place;

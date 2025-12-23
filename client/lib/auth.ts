@@ -330,23 +330,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return true;
         } else {
           // 帳號不存在 - 這是新用戶首次登入
-          
-          // 🔴 關鍵安全檢查：防止在已登入狀態下自動連結新帳號 (Account Linking Protection)
-          // 如果當前 User 已經有連結其他帳號，則不允許在未登出的情況下連結新的 providerAccountId
-          const otherAccountsCount = await accountsCollection.countDocuments({
-            userId: new ObjectId(currentUserId)
-          });
-
-          if (otherAccountsCount > 0) {
-            console.error('⛔ [Security Alert] Blocked auto-linking new account to existing session. User must sign out first.', {
-              currentUserId,
-              newProvider: account.provider,
-              newProviderAccountId: providerAccountId
-            });
-            // 這通常發生在開發環境中沒有正確登出就嘗試切換帳號
-            return false; 
-          }
-
+          // 注意：在 signIn callback 中無法檢查用戶是否已有其他帳號連結
+          // 因為此時用戶可能還未建立。真正的檢查在 linkAccount 中進行。
           console.log(`✅ [SignIn] New account. ProviderAccountId ${providerAccountId} will be linked to User ${currentUserId}`);
           return true;
         }

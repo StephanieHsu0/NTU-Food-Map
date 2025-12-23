@@ -10,17 +10,50 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     
+    // 🔴 安全檢查：輸入參數驗證
+    const latParam = searchParams.get('lat');
+    const lngParam = searchParams.get('lng');
+    const radiusParam = searchParams.get('radius');
+    const priceMaxParam = searchParams.get('price_max');
+    const ratingMinParam = searchParams.get('rating_min');
+
+    // 驗證數值參數
+    const lat = latParam ? (() => {
+      const val = parseFloat(latParam);
+      return !isNaN(val) && val >= -90 && val <= 90 ? val : 25.0170;
+    })() : 25.0170;
+
+    const lng = lngParam ? (() => {
+      const val = parseFloat(lngParam);
+      return !isNaN(val) && val >= -180 && val <= 180 ? val : 121.5395;
+    })() : 121.5395;
+
+    const radius = radiusParam ? (() => {
+      const val = parseInt(radiusParam, 10);
+      return !isNaN(val) && val > 0 && val <= 50000 ? val : 2000; // 最大 50km
+    })() : 2000;
+
+    const price_max = priceMaxParam ? (() => {
+      const val = parseInt(priceMaxParam, 10);
+      return !isNaN(val) && val >= 1 && val <= 4 ? val : undefined;
+    })() : undefined;
+
+    const rating_min = ratingMinParam ? (() => {
+      const val = parseFloat(ratingMinParam);
+      return !isNaN(val) && val >= 0 && val <= 5 ? val : undefined;
+    })() : undefined;
+
     const filters: FilterParams = {
-      lat: searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 25.0170,
-      lng: searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : 121.5395,
-      radius: searchParams.get('radius') ? parseInt(searchParams.get('radius')!) : 2000,
-      price_max: searchParams.get('price_max') ? parseInt(searchParams.get('price_max')!) : undefined,
-      rating_min: searchParams.get('rating_min') ? parseFloat(searchParams.get('rating_min')!) : undefined,
-      categories: searchParams.getAll('categories[]').length > 0 
-        ? searchParams.getAll('categories[]')
+      lat,
+      lng,
+      radius,
+      price_max,
+      rating_min,
+      categories: searchParams.getAll('categories[]').length > 0
+        ? searchParams.getAll('categories[]').filter(cat => cat && cat.length <= 50) // 防止過長的類別名稱
         : undefined,
       features: searchParams.getAll('features[]').length > 0
-        ? searchParams.getAll('features[]')
+        ? searchParams.getAll('features[]').filter(feat => feat && feat.length <= 50) // 防止過長的特徵名稱
         : undefined,
       open_now: searchParams.get('open_now') === 'true',
     };
@@ -122,7 +155,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(filteredPlaces);
   } catch (error) {
-    console.error('Error fetching places:', error);
+    // 🔴 安全檢查：生產環境不記錄詳細錯誤，只記錄一般錯誤
+    console.error('Error fetching places:', process.env.NODE_ENV === 'production' ? 'Internal server error' : error);
     return NextResponse.json(
       { error: 'Failed to fetch places' },
       { status: 500 }

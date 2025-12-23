@@ -8,7 +8,26 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔴 安全檢查：Roulette API 應該不需要認證，因為它是公開功能
+    // 但我們需要驗證輸入資料
     const body: RouletteRequest = await request.json();
+
+    // 驗證請求資料
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+
+    // 驗證地理位置參數
+    if (typeof body.lat !== 'number' || typeof body.lng !== 'number' ||
+        body.lat < -90 || body.lat > 90 || body.lng < -180 || body.lng > 180) {
+      return NextResponse.json(
+        { error: 'Invalid latitude or longitude' },
+        { status: 400 }
+      );
+    }
     const filters: FilterParams = {
       lat: body.lat,
       lng: body.lng,

@@ -83,9 +83,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { place_id, content, rating } = body;
 
-    if (!place_id || !content) {
+    // 🔴 安全檢查：輸入驗證
+    if (!place_id || typeof place_id !== 'string' || place_id.length > 100) {
       return NextResponse.json(
-        { error: 'place_id and content are required' },
+        { error: 'Invalid place_id' },
+        { status: 400 }
+      );
+    }
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0 || content.length > 1000) {
+      return NextResponse.json(
+        { error: 'Content is required and must be 1-1000 characters' },
+        { status: 400 }
+      );
+    }
+
+    if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+      return NextResponse.json(
+        { error: 'Rating must be a number between 1 and 5' },
         { status: 400 }
       );
     }
@@ -127,7 +142,7 @@ export async function POST(request: NextRequest) {
       user_avatar: session.user.image || null,
     });
   } catch (error) {
-    console.error('Error creating comment:', error);
+    console.error('Error creating comment:', process.env.NODE_ENV === 'production' ? 'Internal server error' : error);
     return NextResponse.json(
       { error: 'Failed to create comment' },
       { status: 500 }

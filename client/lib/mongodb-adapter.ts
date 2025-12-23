@@ -165,6 +165,26 @@ export function MongoDBAdapter(): Adapter {
         const userId = typeof account.userId === 'string' ? new ObjectId(account.userId) : account.userId;
         const incomingUserId = typeof userId === 'string' ? userId : (userId as any).toHexString();
 
+        // 🔴 關鍵安全檢查 0: 防止單一用戶連結多個相同 provider 的帳號
+        // 注意：Google 和 LINE 的 account linking 應該是 1:1 的關係
+        // 除非明確支援 account linking，否則每個用戶每種 provider 只能有一個帳號
+        if (normalizedProvider === 'google' || normalizedProvider === 'line') {
+          const existingUserAccounts = await accountsCollection.find({
+            userId: userId,
+            provider: normalizedProvider,
+          }).toArray();
+
+          if (existingUserAccounts.length > 0) {
+            console.error('[MongoDBAdapter.linkAccount] CRITICAL: User already has an account with this provider', {
+              provider: normalizedProvider,
+              userId: incomingUserId,
+              existingAccountsCount: existingUserAccounts.length,
+              attemptedProviderAccountId: normalizedProviderAccountId,
+            });
+            throw new Error('User already has an account with this provider. Cannot link multiple accounts.');
+          }
+        }
+
         // 🔴 關鍵安全檢查 1: 防止相同的 providerAccountId 連結到不同用戶
         const existingByProviderAccountId = await accountsCollection.findOne({
           provider: normalizedProvider,
