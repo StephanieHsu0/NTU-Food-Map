@@ -45,6 +45,9 @@ export interface PlaceDocument {
   price_level: number;
   rating: number;
   rating_count: number;
+  // For compatibility with persisted docs and convenience
+  lat?: number;
+  lng?: number;
   location: {
     type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]

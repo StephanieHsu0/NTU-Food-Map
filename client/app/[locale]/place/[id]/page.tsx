@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useJsApiLoader } from '@react-google-maps/api';
-import { fetchPlace } from '@/utils/api';
+import { fetchPlace, savePlace } from '@/utils/api';
 import { getPlaceDetails } from '@/utils/googlePlaces';
 import { Place } from '@/utils/types';
 import ScoreBreakdown from '@/components/ScoreBreakdown';
@@ -135,11 +135,15 @@ export default function PlaceDetailPage() {
         const data = await getPlaceDetails(id, defaultLat, defaultLng);
         if (!isMountedRef()) return;
         setPlace(data);
+        // Persist to database so other pages (e.g., profile) can resolve names
+        savePlace(data).catch((err) => console.warn('Failed to save place', err));
       } else {
         // Use database API for regular IDs
         const data = await fetchPlace(id);
         if (!isMountedRef()) return;
         setPlace(data);
+        // Ensure we have the latest snapshot stored
+        savePlace(data).catch((err) => console.warn('Failed to save place', err));
       }
     } catch (error) {
       console.error('Failed to load place:', error);
