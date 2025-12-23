@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/db';
 import { put } from '@vercel/blob';
+import { ObjectId } from 'mongodb';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,9 @@ export async function POST(request: NextRequest) {
     // Get user from database
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    
+    // 🔴 修正：使用 session.user.id (ObjectId) 查詢
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(

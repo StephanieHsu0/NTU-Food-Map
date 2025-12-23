@@ -33,7 +33,7 @@ export async function GET(
 
     // Check if user owns this favorite
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
     if (!user || favorite.user_id.toString() !== user._id.toString()) {
       return NextResponse.json(
         { error: 'Forbidden' },
@@ -88,7 +88,7 @@ export async function PUT(
 
     // Check if user owns this favorite
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
     if (!user || favorite.user_id.toString() !== user._id.toString()) {
       return NextResponse.json(
         { error: 'Forbidden' },
@@ -149,7 +149,7 @@ export async function DELETE(
 
     // Check if user owns this favorite
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
     if (!user || favorite.user_id.toString() !== user._id.toString()) {
       return NextResponse.json(
         { error: 'Forbidden' },
@@ -168,4 +168,5 @@ export async function DELETE(
     );
   }
 }
+
 

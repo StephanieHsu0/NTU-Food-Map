@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/db';
+import { ObjectId } from 'mongodb';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,9 @@ export async function GET(request: NextRequest) {
 
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    
+    // 🔴 修正：使用 session.user.id 查詢而非 email (防止 LINE 帳號 email: null 導致衝突)
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(
@@ -39,4 +42,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 

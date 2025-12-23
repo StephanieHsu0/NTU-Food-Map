@@ -57,9 +57,11 @@ async function createIndexes(db: Db) {
       await collection.createIndex(keys, options);
       console.log(`✅ [DB] Index ensured: ${label}`);
     } catch (err: any) {
-      // Duplicate index creation is benign; only log warning
-      if (err?.codeName === 'IndexOptionsConflict' || err?.codeName === 'IndexKeySpecsConflict') {
-        console.warn(`⚠️ [DB] Index conflict (likely exists): ${label} -> ${err.message}`);
+      // 如果是因為已有重複資料導致索引建立失敗，這是一個嚴重警告
+      if (err?.code === 11000 || err?.codeName === 'DuplicateKey') {
+        console.error(`❌ [DB] CRITICAL: Cannot create unique index ${label} because duplicate data already exists! Please clean up the database manually.`, err.message);
+      } else if (err?.codeName === 'IndexOptionsConflict' || err?.codeName === 'IndexKeySpecsConflict') {
+        console.warn(`⚠️ [DB] Index conflict (likely exists with different options): ${label} -> ${err.message}`);
       } else {
         console.error(`❌ [DB] Failed to create index: ${label}`, err);
       }
@@ -89,7 +91,7 @@ async function createIndexes(db: Db) {
       { provider: 1, id_token: 1 },
       {
         unique: true,
-        partialFilterExpression: { id_token: { $ne: null } },
+        partialFilterExpression: { id_token: { $type: 'string' } },
         name: 'unique_provider_id_token',
       }
     );

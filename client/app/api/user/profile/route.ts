@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
 
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    
+    // 🔴 修正：使用 session.user.id (ObjectId) 查詢，因為 LINE 帳號 email 可能為 null
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(
@@ -93,7 +95,9 @@ export async function PUT(request: NextRequest) {
 
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    
+    // 🔴 修正：使用 session.user.id (ObjectId) 查詢
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(

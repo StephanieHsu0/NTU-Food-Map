@@ -32,7 +32,7 @@ export async function POST(
     }
 
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -92,4 +92,5 @@ export async function POST(
     );
   }
 }
+
 

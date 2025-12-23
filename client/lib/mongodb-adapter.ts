@@ -82,11 +82,11 @@ export function MongoDBAdapter(): Adapter {
           return null;
         }
 
-        console.log('[MongoDBAdapter.getUserByAccount] query', { provider: normalizedProvider, providerAccountId: normalizedProviderAccountId });
         const account = await accountsCollection.findOne({
           provider: normalizedProvider,
           providerAccountId: normalizedProviderAccountId,
         });
+        
         if (!account) {
           console.warn('[MongoDBAdapter.getUserByAccount] account not found', { provider: normalizedProvider, providerAccountId: normalizedProviderAccountId });
           return null;
@@ -170,10 +170,12 @@ export function MongoDBAdapter(): Adapter {
           provider: normalizedProvider,
           providerAccountId: normalizedProviderAccountId,
         });
+
         if (existingByProviderAccountId) {
           const existingUserId = typeof existingByProviderAccountId.userId === 'string' 
             ? existingByProviderAccountId.userId.toString() 
             : existingByProviderAccountId.userId.toHexString();
+          
           if (existingUserId !== incomingUserId) {
             console.error('[MongoDBAdapter.linkAccount] CRITICAL: providerAccountId already linked to another user', {
               provider: normalizedProvider,
@@ -183,26 +185,43 @@ export function MongoDBAdapter(): Adapter {
             });
             throw new Error('Account already linked to another user');
           }
-          console.log('[MongoDBAdapter.linkAccount] account already linked to same user, skipping insert', {
+          
+          // 如果帳號已存在且連結到相同用戶，更新現有記錄而非插入新記錄 (冪等操作)
+          console.log('[MongoDBAdapter.linkAccount] Updating existing account record', {
             provider: normalizedProvider,
             providerAccountId: normalizedProviderAccountId,
             userId: incomingUserId,
           });
+          
+          await accountsCollection.updateOne(
+            { _id: existingByProviderAccountId._id },
+            {
+              $set: {
+                refresh_token: account.refresh_token || existingByProviderAccountId.refresh_token,
+                access_token: account.access_token || existingByProviderAccountId.access_token,
+                expires_at: account.expires_at || existingByProviderAccountId.expires_at,
+                token_type: account.token_type || existingByProviderAccountId.token_type,
+                scope: account.scope || existingByProviderAccountId.scope,
+                id_token: account.id_token || existingByProviderAccountId.id_token,
+                session_state: account.session_state || existingByProviderAccountId.session_state,
+              },
+            }
+          );
           return account;
         }
 
-        // 🔴 關鍵安全檢查 2: 防止相同的 id_token 連結到不同用戶（僅對 LINE）
-        // 注意：Google 的 id_token 每次登入可能不同，所以只對 LINE 進行嚴格檢查
-        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
+        // 🔴 關鍵安全檢查 2: 檢查 id_token 是否已被其他 providerAccountId 使用 (針對 LINE)
         if (normalizedProvider === 'line' && account.id_token && typeof account.id_token === 'string') {
           const existingByIdToken = await accountsCollection.findOne({
             provider: normalizedProvider,
             id_token: account.id_token,
           });
+          
           if (existingByIdToken) {
             const existingUserId = typeof existingByIdToken.userId === 'string'
               ? existingByIdToken.userId.toString()
               : existingByIdToken.userId.toHexString();
+              
             if (existingUserId !== incomingUserId) {
               console.error('[MongoDBAdapter.linkAccount] CRITICAL: LINE id_token already linked to different user!', {
                 provider: normalizedProvider,
@@ -214,27 +233,13 @@ export function MongoDBAdapter(): Adapter {
               });
               throw new Error('LINE id_token already linked to another user. Cannot reuse id_token.');
             }
-            // 如果 id_token 已存在且連結到相同用戶，更新記錄而不是創建新記錄
-            console.log('[MongoDBAdapter.linkAccount] LINE id_token already linked to same user, updating existing account', {
-              provider: normalizedProvider,
-              providerAccountId: normalizedProviderAccountId,
-              userId: incomingUserId,
+            
+            // 如果 id_token 匹配且 user 一致，但 providerAccountId 不同，這不應該發生
+            // 但如果發生了，我們以 providerAccountId 為準更新紀錄
+            console.warn('[MongoDBAdapter.linkAccount] Same id_token found for different providerAccountId. This is unusual.', {
+              oldId: existingByIdToken.providerAccountId,
+              newId: normalizedProviderAccountId
             });
-            await accountsCollection.updateOne(
-              { provider: normalizedProvider, id_token: account.id_token },
-              {
-                $set: {
-                  providerAccountId: normalizedProviderAccountId,
-                  refresh_token: account.refresh_token || null,
-                  access_token: account.access_token || null,
-                  expires_at: account.expires_at || null,
-                  token_type: account.token_type || null,
-                  scope: account.scope || null,
-                  session_state: account.session_state || null,
-                },
-              }
-            );
-            return account;
           }
         }
 

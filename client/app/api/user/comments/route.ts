@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
 
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    
+    // 🔴 修正：使用 session.user.id (ObjectId) 查詢
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(

@@ -330,8 +330,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return true;
         } else {
           // 帳號不存在 - 這是新用戶首次登入
-          // NextAuth adapter 會自動創建新帳號連結
-          // 但我們需要確保不會有競態條件
+          
+          // 🔴 關鍵安全檢查：防止在已登入狀態下自動連結新帳號 (Account Linking Protection)
+          // 如果當前 User 已經有連結其他帳號，則不允許在未登出的情況下連結新的 providerAccountId
+          const otherAccountsCount = await accountsCollection.countDocuments({
+            userId: new ObjectId(currentUserId)
+          });
+
+          if (otherAccountsCount > 0) {
+            console.error('⛔ [Security Alert] Blocked auto-linking new account to existing session. User must sign out first.', {
+              currentUserId,
+              newProvider: account.provider,
+              newProviderAccountId: providerAccountId
+            });
+            // 這通常發生在開發環境中沒有正確登出就嘗試切換帳號
+            return false; 
+          }
+
           console.log(`✅ [SignIn] New account. ProviderAccountId ${providerAccountId} will be linked to User ${currentUserId}`);
           return true;
         }
@@ -359,6 +374,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // 安全地設置 session 數據
       (session.user as any).id = userId;
+      // 🔴 增加一個更新時間戳，防止 Client 端快取舊的 session
+      (session.user as any).updatedAt = new Date().getTime();
+      
       if (user.name) session.user.name = user.name;
       if (user.image) session.user.image = user.image;
       if (user.email) session.user.email = user.email;

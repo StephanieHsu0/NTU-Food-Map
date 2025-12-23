@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Get user ID from session
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const user = await usersCollection.findOne({ _id: new ObjectId((session.user as any).id) });
 
     if (!user) {
       return NextResponse.json(
