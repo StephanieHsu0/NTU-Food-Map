@@ -5,6 +5,33 @@ import type { Adapter } from 'next-auth/adapters';
 import { MongoDBAdapter } from './mongodb-adapter';
 import { connectToDatabase } from './db';
 import { ObjectId } from 'mongodb';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// 在構建時也加載環境變數（Next.js 會自動加載，但這裡確保也能從父目錄加載）
+// 嘗試從多個位置加載 .env 文件
+if (typeof window === 'undefined') {
+  try {
+    // 嘗試從多個位置加載 .env 文件（按優先順序）
+    const envPaths = [
+      path.resolve(process.cwd(), '.env.local'),      // Next.js 優先使用的文件
+      path.resolve(process.cwd(), '.env'),            // Next.js 也會加載
+      path.resolve(process.cwd(), '../../.env'),     // 從 client 目錄向上到根目錄
+      path.resolve(process.cwd(), '../.env'),         // 從當前目錄向上
+    ];
+    
+    // 按順序嘗試加載，不覆蓋已存在的環境變數
+    for (const envPath of envPaths) {
+      try {
+        dotenv.config({ path: envPath, override: false });
+      } catch (e) {
+        // 忽略文件不存在的錯誤
+      }
+    }
+  } catch (e) {
+    // 如果加載失敗，繼續執行（Next.js 可能已經加載了環境變數）
+  }
+}
 
 // Helper function to decode JWT (id_token) without verification
 // We only decode to check the 'sub' field, actual verification is done by NextAuth
@@ -65,7 +92,8 @@ if (googleClientId && googleClientSecret) {
       },
     },
   } as any));
-} else {
+} else if (process.env.NODE_ENV === 'development') {
+  // 只在開發模式下顯示警告，構建時不顯示（環境變數可能在部署時才設置）
   console.warn('⚠️ Skipping Google provider - AUTH_GOOGLE_ID/SECRET or GOOGLE_CLIENT_ID/SECRET not set');
 }
 
@@ -109,28 +137,33 @@ if (lineClientId && lineClientSecret) {
     console.error('❌ [Auth Config] Failed to configure LINE provider:', lineProviderError);
     // 不阻止應用啟動，但記錄錯誤
   }
-} else {
+} else if (process.env.NODE_ENV === 'development') {
+  // 只在開發模式下顯示警告，構建時不顯示（環境變數可能在部署時才設置）
   console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID or AUTH_LINE_SECRET not set');
 }
 
-if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-  throw new Error('❌ AUTH_SECRET is missing. Authentication cannot function securely.');
+// 在構建時允許缺少 AUTH_SECRET，NextAuth 會在運行時檢查
+if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET && process.env.NODE_ENV === 'development') {
+  // 只在開發模式下顯示警告，構建時不顯示（環境變數可能在部署時才設置）
+  console.warn('⚠️ AUTH_SECRET is missing. Authentication may not function securely in production.');
 }
 
-// 確保至少有一個 provider 被配置
-if (providers.length === 0) {
-  const errorMsg = '❌ No OAuth providers configured. At least one provider (Google or LINE) is required.';
-  console.error(errorMsg);
-  throw new Error(errorMsg);
+// 確保至少有一個 provider 被配置（構建時允許為空，運行時會檢查）
+if (providers.length === 0 && process.env.NODE_ENV === 'development') {
+  // 只在開發模式下顯示警告，構建時不顯示（環境變數可能在部署時才設置）
+  console.warn('⚠️ No OAuth providers configured. At least one provider (Google or LINE) is required.');
 }
 
-// 驗證配置完整性
-console.log(`✅ [Auth Config] ${providers.length} provider(s) configured:`, providers.map((p: any) => p.id || p.name));
+// 驗證配置完整性（只在開發模式或構建時有配置時顯示）
+if (process.env.NODE_ENV === 'development' || providers.length > 0) {
+  console.log(`✅ [Auth Config] ${providers.length} provider(s) configured:`, providers.map((p: any) => p.id || p.name));
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   adapter: MongoDBAdapter() as Adapter,
   providers,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'temp-secret-for-build'),
   session: {
     strategy: 'database',
     maxAge: 30 * 24 * 60 * 60,

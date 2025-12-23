@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     //     { status: 403 }
     //   );
     // }
-  try {
+
     const body = await request.json();
     const place = body?.place;
 
