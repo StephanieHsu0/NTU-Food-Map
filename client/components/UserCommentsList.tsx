@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getPlaceDetails } from '@/utils/googlePlaces';
 
 interface Comment {
   id: string;
@@ -47,52 +46,10 @@ export default function UserCommentsList({ userId }: UserCommentsListProps) {
       }
 
       const data = await response.json();
-      let commentsData = data.comments;
-      
-      // If place names are missing, try to fetch them using Google Places JavaScript API
-      // This works correctly (same method as place detail page)
-      const commentsWithPlaceNames = await Promise.all(
-        commentsData.map(async (comment: Comment) => {
-          // If place name is missing and it looks like a Google Places ID, fetch using JavaScript API
-          if ((!comment.place_name_zh && !comment.place_name_en) && 
-              (comment.place_id.startsWith('ChIJ') || comment.place_id.startsWith('ChlJ') || comment.place_id.length > 20)) {
-            try {
-              // Wait for Google Maps API to be loaded
-              if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-                const placeData = await getPlaceDetails(comment.place_id, 25.0170, 121.5395);
-                if (placeData && (placeData.name_zh || placeData.name_en)) {
-                  return {
-                    ...comment,
-                    place_name_zh: placeData.name_zh || placeData.name_en || null,
-                    place_name_en: placeData.name_en || placeData.name_zh || null,
-                  };
-                }
-              } else {
-                // If Google Maps API not loaded yet, wait a bit and try again
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-                  const placeData = await getPlaceDetails(comment.place_id, 25.0170, 121.5395);
-                  if (placeData && (placeData.name_zh || placeData.name_en)) {
-                    return {
-                      ...comment,
-                      place_name_zh: placeData.name_zh || placeData.name_en || null,
-                      place_name_en: placeData.name_en || placeData.name_zh || null,
-                    };
-                  }
-                }
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch place name for ${comment.place_id}:`, error);
-            }
-          }
-          return comment;
-        })
-      );
-      
       if (page === 1) {
-        setComments(commentsWithPlaceNames);
+        setComments(data.comments);
       } else {
-        setComments((prev) => [...prev, ...commentsWithPlaceNames]);
+        setComments((prev) => [...prev, ...data.comments]);
       }
       setHasMore(data.pagination.page < data.pagination.total_pages);
     } catch (error) {

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PlaceCard from './PlaceCard';
 import { Place } from '@/utils/types';
-import { getPlaceDetails } from '@/utils/googlePlaces';
 
 interface Favorite {
   id: string;
@@ -43,35 +42,16 @@ export default function UserFavoritesList({ userId }: UserFavoritesListProps) {
       const favoritesData = await response.json();
       setFavorites(favoritesData);
 
-      // Load place details for each favorite using Google Places JavaScript API
-      // This works correctly (same method as place detail page)
+      // Load place details for each favorite
+      // The API route will automatically fetch from Google Places API if not in database
       const placePromises = favoritesData.map(async (fav: Favorite) => {
         try {
-          // Check if it's a Google Places ID
-          if (fav.place_id.startsWith('ChIJ') || fav.place_id.startsWith('ChlJ') || fav.place_id.length > 20) {
-            // Wait for Google Maps API to be loaded
-            if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-              const placeData = await getPlaceDetails(fav.place_id, 25.0170, 121.5395);
-              if (placeData) {
-                return { placeId: fav.place_id, place: placeData };
-              }
-            } else {
-              // If Google Maps API not loaded yet, wait a bit and try again
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
-                const placeData = await getPlaceDetails(fav.place_id, 25.0170, 121.5395);
-                if (placeData) {
-                  return { placeId: fav.place_id, place: placeData };
-                }
-              }
-            }
+          const placeResponse = await fetch(`/api/places/${fav.place_id}`);
+          if (placeResponse.ok) {
+            const placeData = await placeResponse.json();
+            return { placeId: fav.place_id, place: placeData };
           } else {
-            // For non-Google Places IDs, try the API endpoint
-            const placeResponse = await fetch(`/api/places/${fav.place_id}?lat=25.0170&lng=121.5395`);
-            if (placeResponse.ok) {
-              const placeData = await placeResponse.json();
-              return { placeId: fav.place_id, place: placeData };
-            }
+            console.warn(`Failed to load place ${fav.place_id}: ${placeResponse.status} ${placeResponse.statusText}`);
           }
         } catch (error) {
           console.error(`Error loading place ${fav.place_id}:`, error);
