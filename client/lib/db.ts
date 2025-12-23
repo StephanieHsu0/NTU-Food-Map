@@ -63,8 +63,23 @@ async function createIndexes(db: Db) {
     
     // Create indexes for accounts (NextAuth)
     const accountsCollection = db.collection('accounts');
+    // 唯一索引：防止相同的 providerAccountId 連結到多個用戶
     await accountsCollection.createIndex({ provider: 1, providerAccountId: 1 }, { unique: true }).catch(() => {});
     await accountsCollection.createIndex({ userId: 1 }).catch(() => {});
+    // 🔴 關鍵安全索引：防止相同的 id_token 被不同用戶使用
+    // 注意：使用部分索引，只對非 null 的 id_token 創建唯一約束
+    // MongoDB 的部分索引語法：{ partialFilterExpression: { id_token: { $ne: null } } }
+    await accountsCollection.createIndex(
+      { provider: 1, id_token: 1 }, 
+      { 
+        unique: true,
+        partialFilterExpression: { id_token: { $ne: null } },
+        name: 'unique_provider_id_token'
+      }
+    ).catch((err) => {
+      // 如果索引已存在或創建失敗，記錄但不阻止
+      console.warn('⚠️ [DB] Could not create unique id_token index (may already exist):', err.message);
+    });
     
     // Create indexes for sessions (NextAuth)
     const sessionsCollection = db.collection('sessions');

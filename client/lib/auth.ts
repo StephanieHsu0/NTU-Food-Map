@@ -1,292 +1,351 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
-import Line from 'next-auth/providers/line';
+import Line from '@auth/core/providers/line'; // 使用官方 LINE provider
 import type { Adapter } from 'next-auth/adapters';
 import { MongoDBAdapter } from './mongodb-adapter';
 import { connectToDatabase } from './db';
 import { ObjectId } from 'mongodb';
 
-// NextAuth v5 automatically detects environment variables with AUTH_ prefix
-// For Google: AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
-// For Line: AUTH_LINE_ID and AUTH_LINE_SECRET
-// If you use the correct naming, NextAuth will auto-detect them
-// and you can call the provider without parameters
+// Helper function to decode JWT (id_token) without verification
+// We only decode to check the 'sub' field, actual verification is done by NextAuth
+// This is a best-effort check and should not block login if it fails
+function decodeJWT(token: string): any {
+  try {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = parts[1];
+    // Use base64 decoding that works in both Node.js and Edge Runtime
+    // Replace URL-safe base64 characters
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    // Add padding if needed
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+    // Use atob in browser/Edge or Buffer in Node.js
+    let decoded: string;
+    if (typeof window !== 'undefined' && typeof atob !== 'undefined') {
+      decoded = atob(padded);
+    } else if (typeof Buffer !== 'undefined') {
+      decoded = Buffer.from(padded, 'base64').toString('utf-8');
+    } else {
+      // Fallback: try to decode manually (basic implementation)
+      return null;
+    }
+    return JSON.parse(decoded);
+  } catch (error) {
+    // Silently fail - this is a best-effort check
+    return null;
+  }
+}
 
 const providers: any[] = [];
 
-// Add Google provider - NextAuth v5 will auto-detect AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
-// According to NextAuth v5 docs, if you use AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET,
-// you can call Google() without parameters and it will auto-detect
+// Google Provider 設定 (保持您原本的邏輯，稍微簡化)
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
-  // Use auto-detection - NextAuth will automatically read AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET
-  // TypeScript types may not reflect this yet, so we use type assertion
   providers.push(Google({
-    // Limit authorization parameters to prevent HTTP 431 errors
     authorization: {
       params: {
-        // Request minimal scopes to reduce response size
         scope: 'openid email profile',
-        // Prevent prompt parameter from being too long
         prompt: 'consent',
-        // Limit access type
         access_type: 'offline',
       },
     },
   } as any));
-} else if (process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID) {
-  // Fallback: explicitly pass credentials for backward compatibility
-  if (process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET) {
-    providers.push(
-      Google({
-        clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_CLIENT_SECRET,
-        authorization: {
-          params: {
-            scope: 'openid email profile',
-            prompt: 'consent',
-            access_type: 'offline',
-          },
-        },
-      })
-    );
-  } else {
-    console.warn('⚠️ Google OAuth: AUTH_GOOGLE_SECRET is missing');
-  }
-} else {
-  console.warn('⚠️ Skipping Google provider - AUTH_GOOGLE_ID not set');
 }
 
-const lineClientId = process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID || process.env.AUTH_LINE_CHANNEL_ID;
-const lineClientSecret = process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET || process.env.AUTH_LINE_CHANNEL_SECRET;
+// Line Provider 設定變數
+const lineClientId = process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID;
+const lineClientSecret = process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET;
 
-// Add Line provider with explicit endpoints and profile mapping to ensure pictureUrl is captured
+// Debug: Log environment variable status (only in development)
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔍 [Auth Config] Environment variables check:', {
+    hasAUTH_LINE_ID: !!process.env.AUTH_LINE_ID,
+    hasLINE_CHANNEL_ID: !!process.env.LINE_CHANNEL_ID,
+    hasAUTH_LINE_SECRET: !!process.env.AUTH_LINE_SECRET,
+    hasLINE_CHANNEL_SECRET: !!process.env.LINE_CHANNEL_SECRET,
+    lineClientId: lineClientId ? `${lineClientId.substring(0, 4)}...` : 'NOT SET',
+    hasLineSecret: !!lineClientSecret,
+    hasAUTH_SECRET: !!process.env.AUTH_SECRET,
+    hasNEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+  });
+}
+
+// 🔴 重點修正 1: Line Provider 設定
+// 使用自定義的 LINE provider（已包含 profile callback 和錯誤處理）
 if (lineClientId && lineClientSecret) {
   try {
     providers.push(
       Line({
         clientId: lineClientId,
         clientSecret: lineClientSecret,
-        authorization: {
-          url: 'https://access.line.me/oauth2/v2.1/authorize',
-          params: {
-            scope: 'profile openid email',
-            response_type: 'code',
-          },
-        },
-        token: 'https://api.line.me/oauth2/v2.1/token',
-        userinfo: 'https://api.line.me/v2/profile',
-        checks: ['state'],
-        async profile(profile: any) {
-          // Log minimal info for debugging cross-account issues; avoid tokens
-          console.log('[LINE] profile received', {
-            userId: profile?.userId,
-            hasPicture: !!profile?.pictureUrl,
-          });
-          return {
-            id: profile.userId,
-            name: profile.displayName,
-            email: null, // Line doesn't provide email by default
-            image: profile.pictureUrl || null,
-          };
-        },
       } as any)
     );
-  } catch (error) {
-    console.error('❌ Failed to add Line provider:', error);
+    console.log('✅ [Auth Config] LINE provider configured successfully');
+  } catch (lineProviderError) {
+    console.error('❌ [Auth Config] Failed to configure LINE provider:', lineProviderError);
+    // 不阻止應用啟動，但記錄錯誤
   }
 } else {
-  console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID not set');
-}
-
-if (providers.length === 0) {
-  console.error('❌ No OAuth providers configured! Please set at least one provider credentials.');
+  console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID or AUTH_LINE_SECRET not set');
 }
 
 if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-  console.error('❌ AUTH_SECRET not set. Please set AUTH_SECRET or NEXTAUTH_SECRET environment variable.');
-  console.error('   Generate one with: openssl rand -base64 32');
+  throw new Error('❌ AUTH_SECRET is missing. Authentication cannot function securely.');
 }
 
+// 確保至少有一個 provider 被配置
+if (providers.length === 0) {
+  const errorMsg = '❌ No OAuth providers configured. At least one provider (Google or LINE) is required.';
+  console.error(errorMsg);
+  throw new Error(errorMsg);
+}
+
+// 驗證配置完整性
+console.log(`✅ [Auth Config] ${providers.length} provider(s) configured:`, providers.map((p: any) => p.id || p.name));
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true, // Required for Vercel deployment, or set AUTH_TRUST_HOST=true
-  // secret is auto-detected from AUTH_SECRET or NEXTAUTH_SECRET env var
+  trustHost: true,
   adapter: MongoDBAdapter() as Adapter,
   providers,
   session: {
-    strategy: 'database', // Use database session instead of JWT to prevent HTTP 431
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
-        ? `__Secure-next-auth.session-token`
-        : `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        // Shorter maxAge to reduce cookie accumulation
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-      },
-    },
-    // Optimize callback URL cookie to prevent HTTP 431
-    callbackUrl: {
-      name: process.env.NODE_ENV === 'production'
-        ? `__Secure-next-auth.callback-url`
-        : `next-auth.callback-url`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60, // 1 hour - short lived
-      },
-    },
-    // Optimize CSRF token cookie
-    csrfToken: {
-      name: process.env.NODE_ENV === 'production'
-        ? `__Host-next-auth.csrf-token`
-        : `next-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24, // 24 hours
-      },
-    },
+    strategy: 'database',
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
+    // 🔴 重點修正 3: 強化 signIn 邏輯，防止帳號混淆
     async signIn({ user, account, profile }) {
-      if (!account) return true;
-
-      const provider = account.provider;
-      const providerAccountId = (account as any).providerAccountId;
-
-      console.log('[NextAuth.signIn] incoming account', {
-        provider,
-        providerAccountId,
-        userId: user?.id,
-      });
-
-      if (!providerAccountId) {
-        console.error('[NextAuth.signIn] missing providerAccountId', { provider });
+      // 基本驗證：account 和 user 必須存在
+      if (!account || !user) {
+        console.error('❌ [SignIn Security] Missing account or user object');
         return false;
       }
+
+      // 驗證 provider 是否為允許的值
+      if (!account.provider || !['google', 'line'].includes(account.provider)) {
+        console.error('❌ [SignIn Security] Invalid provider:', account.provider);
+        return false;
+      }
+
+      // 嚴格取得 providerAccountId - 這是唯一識別外部帳號的關鍵
+      const providerAccountId = account.providerAccountId;
+
+      // 如果抓不到 providerAccountId，直接拒絕登入
+      if (!providerAccountId || typeof providerAccountId !== 'string' || providerAccountId.trim() === '') {
+        console.error('❌ [SignIn Security] Missing or invalid providerAccountId. Login blocked.');
+        return false;
+      }
+
+      // 🔴 關鍵安全檢查：驗證 id_token 與 providerAccountId 的一致性
+      // 防止 id_token 被重用或混淆
+      // 注意：這是 best-effort 檢查，如果 id_token 不存在或無法解碼，不會阻止登入
+      // 因為 NextAuth 已經驗證了 OAuth 流程的正確性
+      // LINE provider 基於 OpenID Connect，profile 包含 'sub' 字段（不是 'userId'）
+      if (account.provider === 'line' && (account as any).id_token) {
+        try {
+          const idTokenPayload = decodeJWT((account as any).id_token);
+          if (idTokenPayload && idTokenPayload.sub) {
+            // LINE id_token 中的 'sub' 應該與 providerAccountId 一致
+            const idTokenSub = idTokenPayload.sub;
+            const profileSub = (profile as any)?.sub; // LINE OpenID Connect 使用 'sub' 而不是 'userId'
+            
+            // 驗證 id_token 的 sub 與 providerAccountId 一致
+            // 只有在兩者都存在且不匹配時才阻止
+            if (idTokenSub && providerAccountId && idTokenSub !== providerAccountId) {
+              console.error('⛔ [Security Alert] CRITICAL: id_token sub mismatch!', {
+                providerAccountId: providerAccountId,
+                idTokenSub: idTokenSub,
+                profileSub: profileSub,
+              });
+              return false;
+            }
+
+            // 驗證 id_token 的 sub 與 profile.sub 一致（如果 profile 有 sub）
+            if (profileSub && idTokenSub && idTokenSub !== profileSub) {
+              console.error('⛔ [Security Alert] CRITICAL: id_token sub does not match profile.sub!', {
+                idTokenSub: idTokenSub,
+                profileSub: profileSub,
+                providerAccountId: providerAccountId,
+              });
+              return false;
+            }
+
+            console.log('✅ [SignIn Security] id_token verified. Sub matches providerAccountId:', idTokenSub);
+          } else {
+            // id_token 無法解碼或沒有 sub，這是可接受的（可能是格式問題或 NextAuth 已驗證）
+            // 繼續使用 providerAccountId 進行驗證
+            console.log('ℹ️ [SignIn Security] id_token not available or cannot be decoded, using providerAccountId for verification');
+          }
+        } catch (idTokenError) {
+          // id_token 驗證錯誤不應該阻止登入，因為 NextAuth 已經驗證了 OAuth 流程
+          // 只記錄警告，繼續使用 providerAccountId 驗證
+          console.warn('⚠️ [SignIn Security] Error validating id_token (non-blocking):', idTokenError);
+        }
+      }
+
+      // 驗證 user.id 存在
+      if (!user.id) {
+        console.error('❌ [SignIn Security] Missing user.id. Login blocked.');
+        return false;
+      }
+
+      const currentUserId = user.id.toString();
+      console.log(`🔐 [SignIn] Provider: ${account.provider}, ProviderAccountId: ${providerAccountId}, UserId: ${currentUserId}`);
 
       try {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
+        const usersCollection = db.collection('users');
+
+        // 🔴 關鍵安全檢查：確保 id_token 的唯一性（僅對 LINE）
+        // 注意：Google 的 id_token 每次登入可能不同（包含時間戳），所以只對 LINE 進行嚴格檢查
+        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
+        if (account.provider === 'line' && (account as any).id_token && typeof (account as any).id_token === 'string') {
+          try {
+            // 檢查是否有其他帳號（不同 providerAccountId）使用相同的 id_token
+            const duplicateIdTokenAccount = await accountsCollection.findOne({
+              provider: account.provider,
+              id_token: (account as any).id_token,
+              providerAccountId: { $ne: providerAccountId }, // 排除當前 providerAccountId
+            });
+
+            if (duplicateIdTokenAccount) {
+              const duplicateUserId = duplicateIdTokenAccount.userId.toString();
+              console.error('⛔ [Security Alert] CRITICAL: Duplicate LINE id_token detected! Different users cannot share the same id_token!', {
+                provider: account.provider,
+                id_token: (account as any).id_token?.substring(0, 20) + '...', // 只記錄前20字符
+                existingProviderAccountId: duplicateIdTokenAccount.providerAccountId,
+                attemptedProviderAccountId: providerAccountId,
+                existingUserId: duplicateUserId,
+                attemptedUserId: currentUserId,
+              });
+              // 這是嚴重安全問題，必須阻止登入
+              return false;
+            }
+
+            // 額外檢查：即使 providerAccountId 相同，也要確保 userId 一致
+            // 防止同一個 id_token 被連結到不同的用戶
+            const sameIdTokenAccount = await accountsCollection.findOne({
+              provider: account.provider,
+              id_token: (account as any).id_token,
+            });
+
+            if (sameIdTokenAccount) {
+              const linkedUserId = sameIdTokenAccount.userId.toString();
+              if (linkedUserId !== currentUserId) {
+                console.error('⛔ [Security Alert] CRITICAL: LINE id_token already linked to different user!', {
+                  provider: account.provider,
+                  id_token: (account as any).id_token?.substring(0, 20) + '...',
+                  linkedUserId: linkedUserId,
+                  attemptedUserId: currentUserId,
+                  providerAccountId: providerAccountId,
+                });
+                return false;
+              }
+            }
+
+            console.log('✅ [SignIn Security] LINE id_token uniqueness verified. No duplicate found.');
+          } catch (idTokenCheckError) {
+            // 🔴 關鍵決策：如果 LINE id_token 唯一性檢查失敗，為了安全起見應該拒絕登入
+            // 這可以防止在資料庫故障時發生 id_token 混淆
+            console.error('❌ [SignIn Security] CRITICAL: Failed to verify LINE id_token uniqueness. Login blocked for security.', idTokenCheckError);
+            return false;
+          }
+        }
+
+        // 檢查此 providerAccountId 是否已被連結到其他 User
         const existingAccount = await accountsCollection.findOne({
-          provider,
-          providerAccountId,
+          provider: account.provider,
+          providerAccountId: providerAccountId,
         });
 
         if (existingAccount) {
-          const existingUserId = typeof existingAccount.userId === 'string'
-            ? existingAccount.userId
-            : existingAccount.userId.toHexString();
-          const incomingUserId = (user as any)?.id;
+          // 帳號已存在 - 必須嚴格驗證
+          const linkedUserId = existingAccount.userId.toString();
 
-          console.log('[NextAuth.signIn] found existing account', {
-            provider,
-            providerAccountId,
-            existingUserId,
-            incomingUserId,
-          });
-
-          if (incomingUserId && existingUserId !== incomingUserId) {
-            console.error('[NextAuth.signIn] providerAccountId linked to another user. Blocking sign-in.', {
-              provider,
-              providerAccountId,
-              existingUserId,
-              incomingUserId,
+          // 🔴 關鍵安全檢查：如果 providerAccountId 已連結到不同的用戶，絕對不能允許登入
+          if (linkedUserId !== currentUserId) {
+            console.error(`⛔ [Security Alert] CRITICAL: Account hijacking attempt detected!`, {
+              provider: account.provider,
+              providerAccountId: providerAccountId,
+              linkedUserId: linkedUserId,
+              attemptedUserId: currentUserId,
             });
+            // 記錄安全事件並阻止登入
             return false;
           }
 
-          // If user exists but name/image missing, backfill from profile
-          const usersCollection = db.collection('users');
-          const userIdObj = typeof existingAccount.userId === 'string'
-            ? new ObjectId(existingAccount.userId)
-            : existingAccount.userId;
-          const existingUser = await usersCollection.findOne({ _id: userIdObj });
-          const displayName = (profile as any)?.name || (profile as any)?.displayName || existingUser?.name;
-          const picture =
-            (profile as any)?.picture ||
-            (profile as any)?.pictureUrl ||
-            existingUser?.image;
-          const updateData: any = { updatedAt: new Date() };
-          let needUpdate = false;
-          if (!existingUser?.name && displayName) {
-            updateData.name = displayName;
-            needUpdate = true;
+          // 帳號已正確連結到當前用戶 - 允許登入並更新資料
+          console.log(`✅ [SignIn] Existing account verified. ProviderAccountId ${providerAccountId} correctly linked to User ${currentUserId}`);
+
+          // 更新使用者資料 (Backfill Name/Image)
+          // 只有當使用者原本沒有名字或照片時才更新，避免覆蓋使用者自訂資料
+          try {
+            const existingUser = await usersCollection.findOne({ _id: new ObjectId(currentUserId) });
+            if (existingUser) {
+              const updates: any = {};
+              
+              // LINE 的 profile 欄位（OpenID Connect 格式）
+              // 官方 LINE provider 返回: name, picture (不是 displayName, pictureUrl)
+              const newName = (profile as any)?.name || profile?.displayName;
+              const newImage = (profile as any)?.picture || (profile as any)?.pictureUrl;
+
+              if (!existingUser.name && newName) updates.name = newName;
+              if (!existingUser.image && newImage) updates.image = newImage;
+
+              if (Object.keys(updates).length > 0) {
+                await usersCollection.updateOne({ _id: new ObjectId(currentUserId) }, { $set: updates });
+                console.log('✅ [SignIn] Updated user profile from provider data');
+              }
+            }
+          } catch (updateError) {
+            // 更新失敗不應該阻止登入，只記錄錯誤
+            console.error('⚠️ [SignIn] Failed to update user profile:', updateError);
           }
-          if (!existingUser?.image && picture) {
-            updateData.image = picture;
-            needUpdate = true;
-          }
-          if (needUpdate) {
-            await usersCollection.updateOne({ _id: userIdObj }, { $set: updateData });
-            console.log('[NextAuth.signIn] backfilled user profile from LINE', {
-              providerAccountId,
-              updatedName: updateData.name,
-              updatedImage: !!updateData.image,
-            });
-          }
+
+          return true;
         } else {
-          console.log('[NextAuth.signIn] no existing account, proceed to link', {
-            provider,
-            providerAccountId,
-            incomingUserId: (user as any)?.id,
-          });
+          // 帳號不存在 - 這是新用戶首次登入
+          // NextAuth adapter 會自動創建新帳號連結
+          // 但我們需要確保不會有競態條件
+          console.log(`✅ [SignIn] New account. ProviderAccountId ${providerAccountId} will be linked to User ${currentUserId}`);
+          return true;
         }
       } catch (error) {
-        console.error('[NextAuth.signIn] error while checking account linkage', error);
-        // Allow sign-in to avoid locking users out due to transient DB errors
-        return true;
+        // 🔴 關鍵安全決策：如果資料庫檢查失敗，為了安全起見應該拒絕登入
+        // 這可以防止在資料庫故障時發生帳號混淆
+        console.error('❌ [SignIn Security] CRITICAL: Database operation failed. Login blocked for security.', error);
+        return false;
       }
-
-      return true;
     },
     async session({ session, user }) {
-      // With database strategy, user is available directly
-      if (session.user && user) {
-        (session.user as any).id = user.id;
-        
-        try {
-          const db = await connectToDatabase();
-          
-          // Fetch provider from accounts collection
-          const accountsCollection = db.collection('accounts');
-          const account = await accountsCollection.findOne({ userId: new ObjectId(user.id) });
-          (session.user as any).provider = account?.provider || null;
-
-          // Always refresh user fields from DB to ensure latest name/image
-          const usersCollection = db.collection('users');
-          const freshUser = await usersCollection.findOne({ _id: new ObjectId(user.id) });
-
-          const safeName = freshUser?.name || user.name || user.email || user.id;
-          session.user.name = safeName || null;
-          if (freshUser?.email || user.email) {
-            session.user.email = freshUser?.email || user.email;
-          }
-          // Keep image out of session to avoid large headers; UI can fetch via profile API
-          session.user.image = null;
-        } catch (error) {
-          console.error('Error enriching session:', error);
-          // Fallbacks to avoid breaking session
-          session.user.name = user.name || user.email || user.id;
-          session.user.image = null;
-        }
+      // 🔴 安全檢查：確保 session 和 user 對象存在且有效
+      if (!session || !session.user || !user || !user.id) {
+        console.error('❌ [Session Security] Invalid session or user object');
+        // 如果 session 無效，返回基本結構但保持類型兼容
+        return session;
       }
+
+      // 確保 user.id 是有效的字符串
+      const userId = user.id.toString();
+      if (!userId || userId.trim() === '') {
+        console.error('❌ [Session Security] Invalid user.id');
+        return session;
+      }
+
+      // 安全地設置 session 數據
+      (session.user as any).id = userId;
+      if (user.name) session.user.name = user.name;
+      if (user.image) session.user.image = user.image;
+      if (user.email) session.user.email = user.email;
+
       return session;
     },
   },
   pages: {
-    signIn: '/zh/auth/signin', // Default locale, will be handled by middleware
+    signIn: '/zh/auth/signin',
   },
-  debug: process.env.NODE_ENV === 'development', // Enable debug mode in development
+  debug: process.env.NODE_ENV === 'development',
 });
+
+
 

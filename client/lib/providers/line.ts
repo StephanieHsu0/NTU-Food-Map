@@ -32,8 +32,14 @@ export default function LineProvider(
       secret: options.clientSecret,
     },
     async profile(profile: LineProfile) {
+      // 确保 userId 存在
+      if (!profile.userId) {
+        console.error('❌ [LINE Provider] Profile missing userId:', profile);
+        throw new Error('LINE profile is missing userId. Cannot identify user.');
+      }
+
       return {
-        id: profile.userId,
+        id: profile.userId, // 这将成为 providerAccountId
         name: profile.displayName,
         email: null, // Line doesn't provide email by default
         image: profile.pictureUrl || undefined,

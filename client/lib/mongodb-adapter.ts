@@ -144,16 +144,19 @@ export function MongoDBAdapter(): Adapter {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
         const userId = typeof account.userId === 'string' ? new ObjectId(account.userId) : account.userId;
-        // Prevent linking the same providerAccountId to a different user
-        const existing = await accountsCollection.findOne({
+        const incomingUserId = typeof userId === 'string' ? userId : (userId as any).toHexString();
+
+        // 🔴 關鍵安全檢查 1: 防止相同的 providerAccountId 連結到不同用戶
+        const existingByProviderAccountId = await accountsCollection.findOne({
           provider: account.provider,
           providerAccountId: account.providerAccountId,
         });
-        if (existing) {
-          const existingUserId = typeof existing.userId === 'string' ? existing.userId.toString() : existing.userId.toHexString();
-          const incomingUserId = typeof userId === 'string' ? userId : (userId as any).toHexString();
+        if (existingByProviderAccountId) {
+          const existingUserId = typeof existingByProviderAccountId.userId === 'string' 
+            ? existingByProviderAccountId.userId.toString() 
+            : existingByProviderAccountId.userId.toHexString();
           if (existingUserId !== incomingUserId) {
-            console.error('[MongoDBAdapter.linkAccount] providerAccountId already linked to another user', {
+            console.error('[MongoDBAdapter.linkAccount] CRITICAL: providerAccountId already linked to another user', {
               provider: account.provider,
               providerAccountId: account.providerAccountId,
               existingUserId,
@@ -168,6 +171,55 @@ export function MongoDBAdapter(): Adapter {
           });
           return account;
         }
+
+        // 🔴 關鍵安全檢查 2: 防止相同的 id_token 連結到不同用戶（僅對 LINE）
+        // 注意：Google 的 id_token 每次登入可能不同，所以只對 LINE 進行嚴格檢查
+        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
+        if (account.provider === 'line' && account.id_token && typeof account.id_token === 'string') {
+          const existingByIdToken = await accountsCollection.findOne({
+            provider: account.provider,
+            id_token: account.id_token,
+          });
+          if (existingByIdToken) {
+            const existingUserId = typeof existingByIdToken.userId === 'string'
+              ? existingByIdToken.userId.toString()
+              : existingByIdToken.userId.toHexString();
+            if (existingUserId !== incomingUserId) {
+              console.error('[MongoDBAdapter.linkAccount] CRITICAL: LINE id_token already linked to different user!', {
+                provider: account.provider,
+                id_token: account.id_token.substring(0, 20) + '...',
+                existingUserId,
+                incomingUserId,
+                existingProviderAccountId: existingByIdToken.providerAccountId,
+                attemptedProviderAccountId: account.providerAccountId,
+              });
+              throw new Error('LINE id_token already linked to another user. Cannot reuse id_token.');
+            }
+            // 如果 id_token 已存在且連結到相同用戶，更新記錄而不是創建新記錄
+            console.log('[MongoDBAdapter.linkAccount] LINE id_token already linked to same user, updating existing account', {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              userId: incomingUserId,
+            });
+            await accountsCollection.updateOne(
+              { provider: account.provider, id_token: account.id_token },
+              {
+                $set: {
+                  providerAccountId: account.providerAccountId,
+                  refresh_token: account.refresh_token || null,
+                  access_token: account.access_token || null,
+                  expires_at: account.expires_at || null,
+                  token_type: account.token_type || null,
+                  scope: account.scope || null,
+                  session_state: account.session_state || null,
+                },
+              }
+            );
+            return account;
+          }
+        }
+
+        // 創建新帳號連結
         await accountsCollection.insertOne({
           userId: userId,
           type: account.type,
@@ -184,7 +236,7 @@ export function MongoDBAdapter(): Adapter {
         return account;
       } catch (error) {
         console.error('MongoDBAdapter.linkAccount error:', error);
-        // If account already exists, return the account (idempotent)
+        // If account already exists (unique index violation), return the account (idempotent)
         if ((error as any).code === 11000) {
           return account;
         }
