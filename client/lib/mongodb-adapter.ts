@@ -172,9 +172,10 @@ export function MongoDBAdapter(): Adapter {
           return account;
         }
 
-        // 🔴 關鍵安全檢查 2: 防止相同的 id_token 連結到不同用戶
-        // 這是額外的安全層，確保 id_token 的唯一性
-        if (account.id_token && typeof account.id_token === 'string') {
+        // 🔴 關鍵安全檢查 2: 防止相同的 id_token 連結到不同用戶（僅對 LINE）
+        // 注意：Google 的 id_token 每次登入可能不同，所以只對 LINE 進行嚴格檢查
+        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
+        if (account.provider === 'line' && account.id_token && typeof account.id_token === 'string') {
           const existingByIdToken = await accountsCollection.findOne({
             provider: account.provider,
             id_token: account.id_token,
@@ -184,7 +185,7 @@ export function MongoDBAdapter(): Adapter {
               ? existingByIdToken.userId.toString()
               : existingByIdToken.userId.toHexString();
             if (existingUserId !== incomingUserId) {
-              console.error('[MongoDBAdapter.linkAccount] CRITICAL: id_token already linked to different user!', {
+              console.error('[MongoDBAdapter.linkAccount] CRITICAL: LINE id_token already linked to different user!', {
                 provider: account.provider,
                 id_token: account.id_token.substring(0, 20) + '...',
                 existingUserId,
@@ -192,10 +193,10 @@ export function MongoDBAdapter(): Adapter {
                 existingProviderAccountId: existingByIdToken.providerAccountId,
                 attemptedProviderAccountId: account.providerAccountId,
               });
-              throw new Error('id_token already linked to another user. Cannot reuse id_token.');
+              throw new Error('LINE id_token already linked to another user. Cannot reuse id_token.');
             }
             // 如果 id_token 已存在且連結到相同用戶，更新記錄而不是創建新記錄
-            console.log('[MongoDBAdapter.linkAccount] id_token already linked to same user, updating existing account', {
+            console.log('[MongoDBAdapter.linkAccount] LINE id_token already linked to same user, updating existing account', {
               provider: account.provider,
               providerAccountId: account.providerAccountId,
               userId: incomingUserId,

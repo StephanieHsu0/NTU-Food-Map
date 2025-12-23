@@ -196,10 +196,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const accountsCollection = db.collection('accounts');
         const usersCollection = db.collection('users');
 
-        // 🔴 關鍵安全檢查：確保 id_token 的唯一性
-        // 絕對不能允許不同用戶使用相同的 id_token
-        // 這是阻塞性檢查，如果失敗必須拒絕登入
-        if ((account as any).id_token && typeof (account as any).id_token === 'string') {
+        // 🔴 關鍵安全檢查：確保 id_token 的唯一性（僅對 LINE）
+        // 注意：Google 的 id_token 每次登入可能不同（包含時間戳），所以只對 LINE 進行嚴格檢查
+        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
+        if (account.provider === 'line' && (account as any).id_token && typeof (account as any).id_token === 'string') {
           try {
             // 檢查是否有其他帳號（不同 providerAccountId）使用相同的 id_token
             const duplicateIdTokenAccount = await accountsCollection.findOne({
@@ -210,7 +210,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             if (duplicateIdTokenAccount) {
               const duplicateUserId = duplicateIdTokenAccount.userId.toString();
-              console.error('⛔ [Security Alert] CRITICAL: Duplicate id_token detected! Different users cannot share the same id_token!', {
+              console.error('⛔ [Security Alert] CRITICAL: Duplicate LINE id_token detected! Different users cannot share the same id_token!', {
                 provider: account.provider,
                 id_token: (account as any).id_token?.substring(0, 20) + '...', // 只記錄前20字符
                 existingProviderAccountId: duplicateIdTokenAccount.providerAccountId,
@@ -232,7 +232,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (sameIdTokenAccount) {
               const linkedUserId = sameIdTokenAccount.userId.toString();
               if (linkedUserId !== currentUserId) {
-                console.error('⛔ [Security Alert] CRITICAL: id_token already linked to different user!', {
+                console.error('⛔ [Security Alert] CRITICAL: LINE id_token already linked to different user!', {
                   provider: account.provider,
                   id_token: (account as any).id_token?.substring(0, 20) + '...',
                   linkedUserId: linkedUserId,
@@ -243,11 +243,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               }
             }
 
-            console.log('✅ [SignIn Security] id_token uniqueness verified. No duplicate found.');
+            console.log('✅ [SignIn Security] LINE id_token uniqueness verified. No duplicate found.');
           } catch (idTokenCheckError) {
-            // 🔴 關鍵決策：如果 id_token 唯一性檢查失敗，為了安全起見應該拒絕登入
+            // 🔴 關鍵決策：如果 LINE id_token 唯一性檢查失敗，為了安全起見應該拒絕登入
             // 這可以防止在資料庫故障時發生 id_token 混淆
-            console.error('❌ [SignIn Security] CRITICAL: Failed to verify id_token uniqueness. Login blocked for security.', idTokenCheckError);
+            console.error('❌ [SignIn Security] CRITICAL: Failed to verify LINE id_token uniqueness. Login blocked for security.', idTokenCheckError);
             return false;
           }
         }
