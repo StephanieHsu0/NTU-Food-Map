@@ -39,9 +39,24 @@ function decodeJWT(token: string): any {
 
 const providers: any[] = [];
 
-// Google Provider 設定 (保持您原本的邏輯，稍微簡化)
-if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
+// Google Provider 設定 (同時支援 AUTH_GOOGLE_* 與 GOOGLE_CLIENT_* 命名)
+const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔍 [Auth Config] Google env check:', {
+    hasAUTH_GOOGLE_ID: !!process.env.AUTH_GOOGLE_ID,
+    hasGOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    hasAUTH_GOOGLE_SECRET: !!process.env.AUTH_GOOGLE_SECRET,
+    hasGOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+    googleClientIdPreview: googleClientId ? `${googleClientId.substring(0, 6)}...` : 'NOT SET',
+  });
+}
+
+if (googleClientId && googleClientSecret) {
   providers.push(Google({
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
     authorization: {
       params: {
         scope: 'openid email profile',
@@ -52,6 +67,8 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
     // Allow linking Google account to existing user with same verified email
     allowDangerousEmailAccountLinking: true,
   } as any));
+} else {
+  console.warn('⚠️ Skipping Google provider - AUTH_GOOGLE_ID/SECRET or GOOGLE_CLIENT_ID/SECRET not set');
 }
 
 // Line Provider 設定變數
@@ -137,6 +154,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // 嚴格取得 providerAccountId - 這是唯一識別外部帳號的關鍵
       const providerAccountId = account.providerAccountId;
+      const providerAccountIdPreview = providerAccountId ? `${providerAccountId.substring(0, 12)}...` : 'N/A';
 
       // 如果抓不到 providerAccountId，直接拒絕登入
       if (!providerAccountId || typeof providerAccountId !== 'string' || providerAccountId.trim() === '') {
@@ -198,7 +216,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const currentUserId = user.id.toString();
-      console.log(`🔐 [SignIn] Provider: ${account.provider}, ProviderAccountId: ${providerAccountId}, UserId: ${currentUserId}`);
+      console.log(`🔐 [SignIn] Provider: ${account.provider}, ProviderAccountId: ${providerAccountIdPreview}, UserId: ${currentUserId}`);
 
       try {
         const db = await connectToDatabase();
