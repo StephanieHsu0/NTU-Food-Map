@@ -45,7 +45,7 @@ export default function Map({
   const locale = useLocale();
   const t = useTranslations();
   // Map language based on locale: 'zh' -> 'zh-TW', 'en' -> 'en'
-  const mapLanguage = locale === 'zh' ? 'zh-TW' : 'en';
+  // Keep loader options stable to avoid double-loading errors; do not vary language/region here.
   const mapRef = useRef<google.maps.Map | null>(null);
   const [infoWindowPlace, setInfoWindowPlace] = useState<Place | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -74,7 +74,6 @@ export default function Map({
     id: 'google-map-script',
     googleMapsApiKey,
     libraries,
-    language: mapLanguage,
   });
 
   // Keep onMapClick ref up to date
@@ -83,22 +82,7 @@ export default function Map({
     onMapClickRef.current = onMapClick;
   }, [onMapClick]);
 
-  // Debug: Log API key status (always log for debugging)
-  useEffect(() => {
-    console.log('🔍 Google Maps API Key Debug Info:', {
-      hasKey: !!googleMapsApiKey,
-      keyLength: googleMapsApiKey.length,
-      keyPreview: googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : 'empty',
-      keyStartsWith: googleMapsApiKey ? googleMapsApiKey.substring(0, 4) : 'N/A',
-      isProduction: process.env.NODE_ENV === 'production',
-      envVar: process.env.NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY ? 'exists' : 'missing',
-    });
-    
-    // Warn if key seems invalid
-    if (googleMapsApiKey && (googleMapsApiKey.length < 20 || !googleMapsApiKey.startsWith('AIza'))) {
-      console.warn('⚠️ API Key format may be invalid. Google Maps API Keys usually start with "AIza" and are 39 characters long.');
-    }
-  }, [googleMapsApiKey]);
+  // Avoid logging or exposing API keys in production.
 
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -588,15 +572,13 @@ export default function Map({
           <p className="text-sm text-gray-600 mt-2 mb-4">
             請在 Vercel 環境變數中設定 NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY
           </p>
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded text-left mb-4">
-            <p className="font-semibold mb-2 text-gray-900">診斷資訊：</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>API Key 存在: {googleMapsApiKey ? '是' : '否'}</li>
-              <li>API Key 長度: {googleMapsApiKey?.length || 0} 字元</li>
-              <li>API Key 預覽: {googleMapsApiKey ? `${googleMapsApiKey.substring(0, 10)}...` : '無'}</li>
-              <li>格式正確: {googleMapsApiKey?.startsWith('AIza') ? '是' : '否'}</li>
-            </ul>
-          </div>
+            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded text-left mb-4">
+              <p className="font-semibold mb-2 text-gray-900">診斷資訊：</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>API Key 是否存在: {googleMapsApiKey ? '是' : '否'}</li>
+                <li>格式看似正確: {googleMapsApiKey?.startsWith('AIza') ? '是' : '否'}</li>
+              </ul>
+            </div>
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p className="font-semibold mb-1 text-gray-900">設定步驟：</p>
             <ol className="list-decimal list-inside space-y-1 text-left">
@@ -615,13 +597,14 @@ export default function Map({
     );
   }
 
-  // Show error if script failed
+  // Show error if script failed (avoid leaking raw error that may contain API key)
   if (scriptError || loadError) {
+    const displayError = loadError || 'Google Maps 載入失敗，請檢查 API Key、網域限制與配額。';
     return (
       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
         <div className="text-center p-4 max-w-md">
           <p className="text-red-600 font-semibold text-lg mb-2">Google Maps 載入失敗</p>
-          <p className="text-sm text-gray-600 mt-2 mb-4">{(scriptError && scriptError.message) || loadError}</p>
+          <p className="text-sm text-gray-600 mt-2 mb-4">{displayError}</p>
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p className="font-semibold mb-1 text-gray-900">可能的原因：</p>
             <ul className="list-disc list-inside space-y-1 text-left">
