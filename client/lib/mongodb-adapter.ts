@@ -74,13 +74,21 @@ export function MongoDBAdapter(): Adapter {
       try {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
-        console.log('[MongoDBAdapter.getUserByAccount] query', { provider, providerAccountId });
+        const normalizedProvider = provider?.toString();
+        const normalizedProviderAccountId = providerAccountId?.toString();
+
+        if (!normalizedProvider || !normalizedProviderAccountId) {
+          console.warn('[MongoDBAdapter.getUserByAccount] missing provider/providerAccountId', { provider, providerAccountId });
+          return null;
+        }
+
+        console.log('[MongoDBAdapter.getUserByAccount] query', { provider: normalizedProvider, providerAccountId: normalizedProviderAccountId });
         const account = await accountsCollection.findOne({
-          provider,
-          providerAccountId,
+          provider: normalizedProvider,
+          providerAccountId: normalizedProviderAccountId,
         });
         if (!account) {
-          console.warn('[MongoDBAdapter.getUserByAccount] account not found', { provider, providerAccountId });
+          console.warn('[MongoDBAdapter.getUserByAccount] account not found', { provider: normalizedProvider, providerAccountId: normalizedProviderAccountId });
           return null;
         }
         
@@ -143,13 +151,24 @@ export function MongoDBAdapter(): Adapter {
       try {
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
+        const normalizedProvider = account.provider?.toString();
+        const normalizedProviderAccountId = account.providerAccountId?.toString();
+
+        if (!normalizedProvider || !normalizedProviderAccountId) {
+          console.error('[MongoDBAdapter.linkAccount] missing provider/providerAccountId', {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          });
+          throw new Error('Missing provider/providerAccountId');
+        }
+
         const userId = typeof account.userId === 'string' ? new ObjectId(account.userId) : account.userId;
         const incomingUserId = typeof userId === 'string' ? userId : (userId as any).toHexString();
 
         // 🔴 關鍵安全檢查 1: 防止相同的 providerAccountId 連結到不同用戶
         const existingByProviderAccountId = await accountsCollection.findOne({
-          provider: account.provider,
-          providerAccountId: account.providerAccountId,
+          provider: normalizedProvider,
+          providerAccountId: normalizedProviderAccountId,
         });
         if (existingByProviderAccountId) {
           const existingUserId = typeof existingByProviderAccountId.userId === 'string' 
@@ -205,9 +224,9 @@ export function MongoDBAdapter(): Adapter {
         // 🔴 關鍵安全檢查 2: 防止相同的 id_token 連結到不同用戶（僅對 LINE）
         // 注意：Google 的 id_token 每次登入可能不同，所以只對 LINE 進行嚴格檢查
         // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
-        if (account.provider === 'line' && account.id_token && typeof account.id_token === 'string') {
+        if (normalizedProvider === 'line' && account.id_token && typeof account.id_token === 'string') {
           const existingByIdToken = await accountsCollection.findOne({
-            provider: account.provider,
+            provider: normalizedProvider,
             id_token: account.id_token,
           });
           if (existingByIdToken) {
@@ -216,7 +235,7 @@ export function MongoDBAdapter(): Adapter {
               : existingByIdToken.userId.toHexString();
             if (existingUserId !== incomingUserId) {
               console.error('[MongoDBAdapter.linkAccount] CRITICAL: LINE id_token already linked to different user!', {
-                provider: account.provider,
+                provider: normalizedProvider,
                 id_token: account.id_token.substring(0, 20) + '...',
                 existingUserId,
                 incomingUserId,
@@ -227,15 +246,15 @@ export function MongoDBAdapter(): Adapter {
             }
             // 如果 id_token 已存在且連結到相同用戶，更新記錄而不是創建新記錄
             console.log('[MongoDBAdapter.linkAccount] LINE id_token already linked to same user, updating existing account', {
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
+              provider: normalizedProvider,
+              providerAccountId: normalizedProviderAccountId,
               userId: incomingUserId,
             });
             await accountsCollection.updateOne(
-              { provider: account.provider, id_token: account.id_token },
+              { provider: normalizedProvider, id_token: account.id_token },
               {
                 $set: {
-                  providerAccountId: account.providerAccountId,
+                  providerAccountId: normalizedProviderAccountId,
                   refresh_token: account.refresh_token || null,
                   access_token: account.access_token || null,
                   expires_at: account.expires_at || null,
@@ -253,8 +272,8 @@ export function MongoDBAdapter(): Adapter {
         await accountsCollection.insertOne({
           userId: userId,
           type: account.type,
-          provider: account.provider,
-          providerAccountId: account.providerAccountId,
+          provider: normalizedProvider,
+          providerAccountId: normalizedProviderAccountId,
           refresh_token: account.refresh_token || null,
           access_token: account.access_token || null,
           expires_at: account.expires_at || null,

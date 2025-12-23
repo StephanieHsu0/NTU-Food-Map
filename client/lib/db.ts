@@ -47,57 +47,66 @@ export async function connectToDatabase(): Promise<Db> {
 }
 
 async function createIndexes(db: Db) {
+  const ensureIndex = async (
+    label: string,
+    collection: any,
+    keys: Record<string, any>,
+    options: any = {}
+  ) => {
+    try {
+      await collection.createIndex(keys, options);
+      console.log(`✅ [DB] Index ensured: ${label}`);
+    } catch (err: any) {
+      // Duplicate index creation is benign; only log warning
+      if (err?.codeName === 'IndexOptionsConflict' || err?.codeName === 'IndexKeySpecsConflict') {
+        console.warn(`⚠️ [DB] Index conflict (likely exists): ${label} -> ${err.message}`);
+      } else {
+        console.error(`❌ [DB] Failed to create index: ${label}`, err);
+      }
+    }
+  };
+
   try {
     const placesCollection = db.collection('places');
     
-    // Create indexes for places (idempotent - safe to call multiple times)
-    await placesCollection.createIndex({ location: '2dsphere' }).catch(() => {});
-    await placesCollection.createIndex({ rating: -1 }).catch(() => {});
-    await placesCollection.createIndex({ price_level: 1 }).catch(() => {});
-    await placesCollection.createIndex({ categories: 1 }).catch(() => {});
-    await placesCollection.createIndex({ features: 1 }).catch(() => {});
+    await ensureIndex('places.location.2dsphere', placesCollection, { location: '2dsphere' });
+    await ensureIndex('places.rating', placesCollection, { rating: -1 });
+    await ensureIndex('places.price_level', placesCollection, { price_level: 1 });
+    await ensureIndex('places.categories', placesCollection, { categories: 1 });
+    await ensureIndex('places.features', placesCollection, { features: 1 });
 
-    // Create indexes for users (NextAuth)
     const usersCollection = db.collection('users');
-    await usersCollection.createIndex({ email: 1 }).catch(() => {});
+    await ensureIndex('users.email', usersCollection, { email: 1 });
     
-    // Create indexes for accounts (NextAuth)
     const accountsCollection = db.collection('accounts');
-    // 唯一索引：防止相同的 providerAccountId 連結到多個用戶
-    await accountsCollection.createIndex({ provider: 1, providerAccountId: 1 }, { unique: true }).catch(() => {});
-    await accountsCollection.createIndex({ userId: 1 }).catch(() => {});
-    // 🔴 關鍵安全索引：防止相同的 id_token 被不同用戶使用
-    // 注意：使用部分索引，只對非 null 的 id_token 創建唯一約束
-    // MongoDB 的部分索引語法：{ partialFilterExpression: { id_token: { $ne: null } } }
-    await accountsCollection.createIndex(
-      { provider: 1, id_token: 1 }, 
-      { 
+    // 高優先：provider + providerAccountId 唯一
+    await ensureIndex('accounts.provider_providerAccountId_unique', accountsCollection, { provider: 1, providerAccountId: 1 }, { unique: true });
+    await ensureIndex('accounts.userId', accountsCollection, { userId: 1 });
+    // 高優先：provider + id_token 部分唯一（僅對非 null）
+    await ensureIndex(
+      'accounts.provider_id_token_unique',
+      accountsCollection,
+      { provider: 1, id_token: 1 },
+      {
         unique: true,
         partialFilterExpression: { id_token: { $ne: null } },
-        name: 'unique_provider_id_token'
+        name: 'unique_provider_id_token',
       }
-    ).catch((err) => {
-      // 如果索引已存在或創建失敗，記錄但不阻止
-      console.warn('⚠️ [DB] Could not create unique id_token index (may already exist):', err.message);
-    });
+    );
     
-    // Create indexes for sessions (NextAuth)
     const sessionsCollection = db.collection('sessions');
-    await sessionsCollection.createIndex({ sessionToken: 1 }, { unique: true }).catch(() => {});
-    await sessionsCollection.createIndex({ userId: 1 }).catch(() => {});
+    await ensureIndex('sessions.sessionToken_unique', sessionsCollection, { sessionToken: 1 }, { unique: true });
+    await ensureIndex('sessions.userId', sessionsCollection, { userId: 1 });
 
-    // Create indexes for comments
     const commentsCollection = db.collection('comments');
-    await commentsCollection.createIndex({ place_id: 1 }).catch(() => {});
-    await commentsCollection.createIndex({ user_id: 1 }).catch(() => {});
-    await commentsCollection.createIndex({ created_at: -1 }).catch(() => {});
+    await ensureIndex('comments.place_id', commentsCollection, { place_id: 1 });
+    await ensureIndex('comments.user_id', commentsCollection, { user_id: 1 });
+    await ensureIndex('comments.created_at', commentsCollection, { created_at: -1 });
 
-    // Create indexes for favorites
     const favoritesCollection = db.collection('favorites');
-    await favoritesCollection.createIndex({ user_id: 1, place_id: 1 }, { unique: true }).catch(() => {});
-    await favoritesCollection.createIndex({ user_id: 1 }).catch(() => {});
+    await ensureIndex('favorites.user_place_unique', favoritesCollection, { user_id: 1, place_id: 1 }, { unique: true });
+    await ensureIndex('favorites.user_id', favoritesCollection, { user_id: 1 });
   } catch (error) {
-    // Indexes might already exist, ignore errors
     console.error('Error creating indexes:', error);
   }
 }
