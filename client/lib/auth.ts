@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
-import Line from '@auth/core/providers/line'; // 使用官方 LINE provider
 import type { Adapter } from 'next-auth/adapters';
 import { MongoDBAdapter } from './mongodb-adapter';
 import { connectToDatabase } from './db';
@@ -55,49 +54,6 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 }
 
 // Line Provider 設定變數
-const lineClientId = process.env.AUTH_LINE_ID || process.env.LINE_CHANNEL_ID;
-const lineClientSecret = process.env.AUTH_LINE_SECRET || process.env.LINE_CHANNEL_SECRET;
-
-// Debug: Log environment variable status (only in development)
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 [Auth Config] Environment variables check:', {
-    hasAUTH_LINE_ID: !!process.env.AUTH_LINE_ID,
-    hasLINE_CHANNEL_ID: !!process.env.LINE_CHANNEL_ID,
-    hasAUTH_LINE_SECRET: !!process.env.AUTH_LINE_SECRET,
-    hasLINE_CHANNEL_SECRET: !!process.env.LINE_CHANNEL_SECRET,
-    lineClientId: lineClientId ? `${lineClientId.substring(0, 4)}...` : 'NOT SET',
-    hasLineSecret: !!lineClientSecret,
-    hasAUTH_SECRET: !!process.env.AUTH_SECRET,
-    hasNEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
-  });
-}
-
-// 🔴 重點修正 1: Line Provider 設定
-// 使用自定義的 LINE provider（已包含 profile callback 和錯誤處理）
-if (lineClientId && lineClientSecret) {
-  try {
-    providers.push(
-      Line({
-        clientId: lineClientId,
-        clientSecret: lineClientSecret,
-        // Force consent each time so users can切換 LINE 帳號
-        authorization: {
-          params: {
-            prompt: 'consent',
-            max_age: 0, // ensure re-auth instead of silently reusing prior login
-          },
-        },
-      } as any)
-    );
-    console.log('✅ [Auth Config] LINE provider configured successfully');
-  } catch (lineProviderError) {
-    console.error('❌ [Auth Config] Failed to configure LINE provider:', lineProviderError);
-    // 不阻止應用啟動，但記錄錯誤
-  }
-} else {
-  console.warn('⚠️ Skipping Line provider - AUTH_LINE_ID or AUTH_LINE_SECRET not set');
-}
-
 if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
   throw new Error('❌ AUTH_SECRET is missing. Authentication cannot function securely.');
 }
@@ -130,7 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // 驗證 provider 是否為允許的值
-      if (!account.provider || !['google', 'line'].includes(account.provider)) {
+      if (!account.provider || account.provider !== 'google') {
         console.error('❌ [SignIn Security] Invalid provider:', account.provider);
         return false;
       }
@@ -142,53 +98,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!providerAccountId || typeof providerAccountId !== 'string' || providerAccountId.trim() === '') {
         console.error('❌ [SignIn Security] Missing or invalid providerAccountId. Login blocked.');
         return false;
-      }
-
-      // 🔴 關鍵安全檢查：驗證 id_token 與 providerAccountId 的一致性
-      // 防止 id_token 被重用或混淆
-      // 注意：這是 best-effort 檢查，如果 id_token 不存在或無法解碼，不會阻止登入
-      // 因為 NextAuth 已經驗證了 OAuth 流程的正確性
-      // LINE provider 基於 OpenID Connect，profile 包含 'sub' 字段（不是 'userId'）
-      if (account.provider === 'line' && (account as any).id_token) {
-        try {
-          const idTokenPayload = decodeJWT((account as any).id_token);
-          if (idTokenPayload && idTokenPayload.sub) {
-            // LINE id_token 中的 'sub' 應該與 providerAccountId 一致
-            const idTokenSub = idTokenPayload.sub;
-            const profileSub = (profile as any)?.sub; // LINE OpenID Connect 使用 'sub' 而不是 'userId'
-            
-            // 驗證 id_token 的 sub 與 providerAccountId 一致
-            // 只有在兩者都存在且不匹配時才阻止
-            if (idTokenSub && providerAccountId && idTokenSub !== providerAccountId) {
-              console.error('⛔ [Security Alert] CRITICAL: id_token sub mismatch!', {
-                providerAccountId: providerAccountId,
-                idTokenSub: idTokenSub,
-                profileSub: profileSub,
-              });
-              return false;
-            }
-
-            // 驗證 id_token 的 sub 與 profile.sub 一致（如果 profile 有 sub）
-            if (profileSub && idTokenSub && idTokenSub !== profileSub) {
-              console.error('⛔ [Security Alert] CRITICAL: id_token sub does not match profile.sub!', {
-                idTokenSub: idTokenSub,
-                profileSub: profileSub,
-                providerAccountId: providerAccountId,
-              });
-              return false;
-            }
-
-            console.log('✅ [SignIn Security] id_token verified. Sub matches providerAccountId:', idTokenSub);
-          } else {
-            // id_token 無法解碼或沒有 sub，這是可接受的（可能是格式問題或 NextAuth 已驗證）
-            // 繼續使用 providerAccountId 進行驗證
-            console.log('ℹ️ [SignIn Security] id_token not available or cannot be decoded, using providerAccountId for verification');
-          }
-        } catch (idTokenError) {
-          // id_token 驗證錯誤不應該阻止登入，因為 NextAuth 已經驗證了 OAuth 流程
-          // 只記錄警告，繼續使用 providerAccountId 驗證
-          console.warn('⚠️ [SignIn Security] Error validating id_token (non-blocking):', idTokenError);
-        }
       }
 
       // 驗證 user.id 存在
@@ -204,62 +113,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const db = await connectToDatabase();
         const accountsCollection = db.collection('accounts');
         const usersCollection = db.collection('users');
-
-        // 🔴 關鍵安全檢查：確保 id_token 的唯一性（僅對 LINE）
-        // 注意：Google 的 id_token 每次登入可能不同（包含時間戳），所以只對 LINE 進行嚴格檢查
-        // LINE 的 id_token 應該對應唯一的用戶，不能重複使用
-        if (account.provider === 'line' && (account as any).id_token && typeof (account as any).id_token === 'string') {
-          try {
-            // 檢查是否有其他帳號（不同 providerAccountId）使用相同的 id_token
-            const duplicateIdTokenAccount = await accountsCollection.findOne({
-              provider: account.provider,
-              id_token: (account as any).id_token,
-              providerAccountId: { $ne: providerAccountId }, // 排除當前 providerAccountId
-            });
-
-            if (duplicateIdTokenAccount) {
-              const duplicateUserId = duplicateIdTokenAccount.userId.toString();
-              console.error('⛔ [Security Alert] CRITICAL: Duplicate LINE id_token detected! Different users cannot share the same id_token!', {
-                provider: account.provider,
-                id_token: (account as any).id_token?.substring(0, 20) + '...', // 只記錄前20字符
-                existingProviderAccountId: duplicateIdTokenAccount.providerAccountId,
-                attemptedProviderAccountId: providerAccountId,
-                existingUserId: duplicateUserId,
-                attemptedUserId: currentUserId,
-              });
-              // 這是嚴重安全問題，必須阻止登入
-              return false;
-            }
-
-            // 額外檢查：即使 providerAccountId 相同，也要確保 userId 一致
-            // 防止同一個 id_token 被連結到不同的用戶
-            const sameIdTokenAccount = await accountsCollection.findOne({
-              provider: account.provider,
-              id_token: (account as any).id_token,
-            });
-
-            if (sameIdTokenAccount) {
-              const linkedUserId = sameIdTokenAccount.userId.toString();
-              if (linkedUserId !== currentUserId) {
-                console.error('⛔ [Security Alert] CRITICAL: LINE id_token already linked to different user!', {
-                  provider: account.provider,
-                  id_token: (account as any).id_token?.substring(0, 20) + '...',
-                  linkedUserId: linkedUserId,
-                  attemptedUserId: currentUserId,
-                  providerAccountId: providerAccountId,
-                });
-                return false;
-              }
-            }
-
-            console.log('✅ [SignIn Security] LINE id_token uniqueness verified. No duplicate found.');
-          } catch (idTokenCheckError) {
-            // 🔴 關鍵決策：如果 LINE id_token 唯一性檢查失敗，為了安全起見應該拒絕登入
-            // 這可以防止在資料庫故障時發生 id_token 混淆
-            console.error('❌ [SignIn Security] CRITICAL: Failed to verify LINE id_token uniqueness. Login blocked for security.', idTokenCheckError);
-            return false;
-          }
-        }
 
         // 檢查此 providerAccountId 是否已被連結到其他 User
         const existingAccount = await accountsCollection.findOne({

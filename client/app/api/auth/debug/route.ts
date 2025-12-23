@@ -11,8 +11,6 @@ export async function GET() {
   const envCheck = {
     hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
     hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-    hasLineChannelId: !!process.env.LINE_CHANNEL_ID,
-    hasLineChannelSecret: !!process.env.LINE_CHANNEL_SECRET,
     hasAuthSecret: !!(process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET),
     hasMongoUri: !!process.env.MONGODB_URI,
     authSecretLength: (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '').length,
