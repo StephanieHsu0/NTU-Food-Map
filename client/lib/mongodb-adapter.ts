@@ -156,19 +156,49 @@ export function MongoDBAdapter(): Adapter {
             ? existingByProviderAccountId.userId.toString() 
             : existingByProviderAccountId.userId.toHexString();
           if (existingUserId !== incomingUserId) {
-            console.error('[MongoDBAdapter.linkAccount] CRITICAL: providerAccountId already linked to another user', {
+            // 允許重新指向新的 user（避免拋出 AccessDenied/Configuration）
+            await accountsCollection.updateOne(
+              { provider: account.provider, providerAccountId: account.providerAccountId },
+              {
+                $set: {
+                  userId,
+                  refresh_token: account.refresh_token || null,
+                  access_token: account.access_token || null,
+                  expires_at: account.expires_at || null,
+                  token_type: account.token_type || null,
+                  scope: account.scope || null,
+                  id_token: account.id_token || null,
+                  session_state: account.session_state || null,
+                },
+              }
+            );
+            console.log('[MongoDBAdapter.linkAccount] Re-linked providerAccountId to new user', {
               provider: account.provider,
               providerAccountId: account.providerAccountId,
-              existingUserId,
-              incomingUserId,
+              from: existingUserId,
+              to: incomingUserId,
             });
-            throw new Error('Account already linked to another user');
+            return account;
           }
-          console.log('[MongoDBAdapter.linkAccount] account already linked to same user, skipping insert', {
+          console.log('[MongoDBAdapter.linkAccount] account already linked to same user, updating tokens', {
             provider: account.provider,
             providerAccountId: account.providerAccountId,
             userId: incomingUserId,
           });
+          await accountsCollection.updateOne(
+            { provider: account.provider, providerAccountId: account.providerAccountId },
+            {
+              $set: {
+                refresh_token: account.refresh_token || null,
+                access_token: account.access_token || null,
+                expires_at: account.expires_at || null,
+                token_type: account.token_type || null,
+                scope: account.scope || null,
+                id_token: account.id_token || null,
+                session_state: account.session_state || null,
+              },
+            }
+          );
           return account;
         }
 
