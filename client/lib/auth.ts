@@ -49,6 +49,8 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
         access_type: 'offline',
       },
     },
+    // Allow linking Google account to existing user with same verified email
+    allowDangerousEmailAccountLinking: true,
   } as any));
 }
 
