@@ -60,3 +60,18 @@ export async function spinRoulette(request: RouletteRequest): Promise<Place> {
   return response.json();
 }
 
+export async function savePlace(place: Place): Promise<void> {
+  const response = await fetch(`${API_URL}/api/places/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ place }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.warn('Failed to save place:', response.status, text);
+  }
+}
+
