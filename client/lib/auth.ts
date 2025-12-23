@@ -78,6 +78,13 @@ if (lineClientId && lineClientSecret) {
       Line({
         clientId: lineClientId,
         clientSecret: lineClientSecret,
+        // Force consent each time so users can切換 LINE 帳號
+        authorization: {
+          params: {
+            prompt: 'consent',
+            max_age: 0, // ensure re-auth instead of silently reusing prior login
+          },
+        },
       } as any)
     );
     console.log('✅ [Auth Config] LINE provider configured successfully');
