@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,16 @@ export async function GET(request: NextRequest) {
 
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ email: session.user.email });
+    const userId = session.user.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User id missing in session' },
+        { status: 400 }
+      );
+    }
+
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
     if (!user) {
       return NextResponse.json(
